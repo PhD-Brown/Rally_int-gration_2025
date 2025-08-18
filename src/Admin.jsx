@@ -1,0 +1,134 @@
+import React from 'react'
+import { adminLeaderboard, adminPhotos } from '@/lib/api'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+
+function fmtTime(s=0){ s=Math.max(0, s|0); const h=String(Math.floor(s/3600)).padStart(2,'0'); const m=String(Math.floor((s%3600)/60)).padStart(2,'0'); const sec=String(s%60).padStart(2,'0'); return h==='00' ? `${m}:${sec}` : `${h}:${m}:${sec}` }
+
+export default function Admin() {
+  const [token, setToken] = React.useState(localStorage.getItem('admin_token') || '')
+  const [teams, setTeams] = React.useState([])
+  const [selected, setSelected] = React.useState('')
+  const [photos, setPhotos] = React.useState([])
+  const [cursor, setCursor] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState('')
+
+  const loadLeaders = async () => {
+    setError('')
+    try {
+      const data = await adminLeaderboard()
+      setTeams(data)
+      if (!selected && data.length) setSelected(data[0].teamId)
+    } catch (e) {
+      setError("Non autorisé. Entre le token d'admin.")
+    }
+  }
+
+  const loadPhotos = async (reset=true) => {
+    if(!selected) return
+    setLoading(true); setError('')
+    try {
+      const res = await adminPhotos(selected, reset ? '' : cursor)
+      setCursor(res.cursor || '')
+      setPhotos(prev => reset ? res.items : [...prev, ...res.items])
+    } catch (e) {
+      setError("Non autorisé. Vérifie le token.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  React.useEffect(()=>{ loadLeaders() }, [])      // au montage
+  React.useEffect(()=>{ loadPhotos(true) }, [selected]) // changement d'équipe
+
+  const saveToken = () => {
+    localStorage.setItem('admin_token', token.trim())
+    setError('')
+    loadLeaders()
+    if (selected) loadPhotos(true)
+  }
+
+  // groupage par station
+  const byStation = photos.reduce((acc,p)=>{
+    const k = p.stationId || 'UNKNOWN'
+    acc[k] = acc[k] || []
+    acc[k].push(p)
+    return acc
+  }, {})
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <header className="border-b bg-white">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="text-lg font-semibold">Admin — Rallye UL</div>
+          <div className="flex items-center gap-2">
+            <Input placeholder="Admin token" value={token} onChange={e=>setToken(e.target.value)} className="w-48"/>
+            <Button onClick={saveToken}>Valider</Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 py-6 grid md:grid-cols-5 gap-4">
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Classement</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {error && <div className="text-sm text-rose-600">{error}</div>}
+            {!teams.length && !error && <div className="text-sm text-slate-500">Aucune équipe pour l’instant.</div>}
+            <div className="space-y-2">
+              {teams.map(t => (
+                <div key={t.teamId}
+                     className={`p-3 rounded-xl border cursor-pointer ${selected===t.teamId ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}
+                     onClick={()=>setSelected(t.teamId)}>
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{t.rank ? `#${t.rank}` : ''} {t.teamId}</div>
+                    <Badge>{t.stations?.length || 0} / 21</Badge>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+                    <span>Temps: {fmtTime(t.seconds || 0)}</span>
+                    <div className="flex-1"><Progress value={((t.stations?.length||0)/21)*100}/></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-3">
+          <CardHeader>
+            <CardTitle>Photos — {selected || 'Aucune équipe sélectionnée'}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {!selected && <div className="text-sm text-slate-500">Sélectionne une équipe à gauche.</div>}
+            {selected && Object.keys(byStation).sort().map(st => (
+              <div key={st}>
+                <div className="mb-2 text-sm font-medium">Station {st}</div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {(byStation[st] || []).map(ph => (
+                    <a key={ph.key} href={ph.url} target="_blank" rel="noreferrer"
+                       className="block rounded-xl overflow-hidden border bg-white">
+                      <img src={ph.url} alt={ph.filename} className="w-full h-40 object-cover"/>
+                      <div className="p-2 text-xs text-slate-600 truncate">{ph.filename}</div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {selected && (
+              <div className="flex items-center justify-center">
+                <Button onClick={()=>loadPhotos(false)} disabled={!cursor || loading}>
+                  {loading ? 'Chargement…' : (cursor ? 'Charger plus' : 'Tout chargé')}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  )
+}

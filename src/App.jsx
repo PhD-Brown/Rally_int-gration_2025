@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
 import { Plus, Trash2, Users, MapPin, Lock, Unlock, CheckCircle2, Image as ImageIcon, Upload, Clock, ChevronRight, RotateCcw } from 'lucide-react'
-import { validateCode, uploadPhoto } from '@/lib/api'
+import { validateCode, uploadPhoto, registerTeam, pushProgress } from '@/lib/api'
+import Admin from './Admin.jsx'
+
 
 // --- DÉMO DES 21 STATIONS (à adapter) ---
 const STATIONS = [
@@ -41,6 +43,9 @@ function seededShuffle(arr, seed){const rng=mulberry32(seed||1); const a=[...arr
 const STORAGE_KEY = 'ul_rally_state_v1'
 
 export default function RallyeULApp() {
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+    return <Admin />
+  }
   const [team, setTeam] = useState([])
   const [memberName, setMemberName] = useState('')
   const [routeNumber, setRouteNumber] = useState('')
@@ -96,11 +101,20 @@ export default function RallyeULApp() {
   }
   const removeMember = (name)=> setTeam(t => t.filter(n => n!==name))
 
-  const startRun = ()=>{
-    if(team.length===0) return alert('Ajoutez au moins un membre.')
-    if(!routeNumber) return alert('Entrez un numéro de parcours.')
-    setStartedAt(Date.now()); setCurrentIdx(0); setUnlocked(false); setCodeInput('')
-  }
+  const startRun = async () => {
+    if (team.length === 0) return alert('Ajoutez au moins un membre.');
+    if (!routeNumber) return alert('Entrez un numéro de parcours.');
+
+    // démarrer le chrono + reset étape
+    setStartedAt(Date.now());
+    setCurrentIdx(0);
+    setUnlocked(false);
+    setCodeInput('');
+
+    // inscrire l’équipe côté serveur (fire-and-forget ok)
+    const teamId = team.join('-') || 'anon';
+    try { await registerTeam(teamId); } catch (e) { console.warn('registerTeam failed', e); }
+  };
 
   const handleUpload = async (files) => {
     if (!currentStation) return;
@@ -145,8 +159,12 @@ export default function RallyeULApp() {
     }
 
     try {
-      await validateCode(currentStation.id, codeInput);
+      await validateCode(currentStation.id, codeInput); // appelle /api/validate-code
       setUnlocked(true);
+
+      // push progression (pour classement)
+      const teamId = team.join('-') || 'anon';
+      try { await pushProgress(teamId, currentStation.id, seconds); } catch (e) { console.warn('pushProgress failed', e); }
     } catch {
       alert('Code invalide. Réessayez.');
     }
@@ -345,7 +363,7 @@ export default function RallyeULApp() {
           </motion.div>
         )}
 
-        <div className="pt-6 text-center text-xs text-slate-500">Prototype front-end — aucune donnée n'est envoyée. Personnalisez le contenu dans le tableau STATIONS.</div>
+        <div className="pt-6 text-center text-xs text-slate-500">Baker is such a beast!!.</div>
       </main>
     </div>
   )
