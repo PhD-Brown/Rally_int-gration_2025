@@ -59,3 +59,18 @@ export async function adminPhotos(teamId, cursor = '') {
   if (!res.ok) throw new Error('UNAUTHORIZED');
   return res.json(); // { items, cursor, truncated }
 }
+
+function adminHeaders() {
+  const t = localStorage.getItem('admin_token') || '';
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+export async function adminReset(scope='teams') {
+  const res = await fetch('/api/admin/reset', {
+    method: 'POST',
+    headers: { 'content-type':'application/json', ...adminHeaders() },
+    body: JSON.stringify({ scope, confirm: 'RESET' }),
+  });
+  if (!res.ok) throw new Error('RESET_FAILED');
+  return res.json();
+}

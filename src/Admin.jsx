@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { adminLeaderboard, adminPhotos, adminReset } from '@/lib/api'
 
 function fmtTime(s=0){ s=Math.max(0, s|0); const h=String(Math.floor(s/3600)).padStart(2,'0'); const m=String(Math.floor((s%3600)/60)).padStart(2,'0'); const sec=String(s%60).padStart(2,'0'); return h==='00' ? `${m}:${sec}` : `${h}:${m}:${sec}` }
 
@@ -16,6 +17,7 @@ export default function Admin() {
   const [cursor, setCursor] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [resetScope, setResetScope] = React.useState('teams');
 
   const loadLeaders = async () => {
     setError('')
@@ -41,6 +43,17 @@ export default function Admin() {
       setLoading(false)
     }
   }
+
+    const doReset = async () => {
+    if (!window.confirm(`Confirmer le reset ${resetScope === 'all' ? 'COMPLET' : resetScope} ?`)) return;
+    try {
+      await adminReset(resetScope);
+      setPhotos([]); setCursor('');
+      await loadLeaders();
+      if (selected) await loadPhotos(true);
+      alert('Réinitialisation effectuée.');
+    } catch (e) { alert('Échec du reset (token ?)'); }
+  };
 
   React.useEffect(()=>{ loadLeaders() }, [])      // au montage
   React.useEffect(()=>{ loadPhotos(true) }, [selected]) // changement d'équipe
@@ -95,6 +108,24 @@ export default function Admin() {
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <select
+                className="border rounded-lg px-2 py-1"
+                value={resetScope}
+                onChange={(e) => setResetScope(e.target.value)}
+              >
+                <option value="teams">Réinitialiser équipes (KV)</option>
+                <option value="photos">Supprimer photos (R2)</option>
+                <option value="all">Tout (KV + photos)</option>
+              </select>
+
+              <button
+                onClick={doReset}
+                className="px-3 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700"
+              >
+                Réinitialiser
+              </button>
             </div>
           </CardContent>
         </Card>
