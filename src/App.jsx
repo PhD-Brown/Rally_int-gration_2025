@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
 import { Plus, Trash2, Users, MapPin, Lock, Unlock, CheckCircle2, Image as ImageIcon, Upload, Clock, ChevronRight, RotateCcw } from 'lucide-react'
+import { validateCode, uploadPhoto } from '@/lib/api'
 
 // --- DÉMO DES 21 STATIONS (à adapter) ---
 const STATIONS = [
@@ -101,33 +102,55 @@ export default function RallyeULApp() {
     setStartedAt(Date.now()); setCurrentIdx(0); setUnlocked(false); setCodeInput('')
   }
 
-  const handleUpload = (fileList)=>{
-    if(!currentStation) return
-    const list = Array.from(fileList || [])
-    if(list.length===0) return
-    setPhotos(p=>{
-      const cur = p[currentStation.id] || []
-      const add = list.map(file => ({ file, url: URL.createObjectURL(file) }))
-      return { ...p, [currentStation.id]: [...cur, ...add].slice(0,6) }
-    })
-  }
+  const handleUpload = async (files) => {
+    if (!currentStation) return;
+    const list = Array.from(files || []);
+    if (list.length === 0) return;
 
-  const validateAndUnlock = ()=>{
-    if(!currentStation) return
-    const expected = (currentStation.code || '').trim().toUpperCase()
-    const got = (codeInput || '').trim().toUpperCase()
+    // preview local immédiat
+    setPhotos((p) => {
+      const cur = p[currentStation.id] || [];
+      const add = list.map((file) => ({ file, url: URL.createObjectURL(file), remote: null }));
+      return { ...p, [currentStation.id]: [...cur, ...add].slice(0, 6) };
+    });
 
-    if(currentStation.requiresPhoto){
-      const hasPhoto = (photos[currentStation.id] || []).length > 0
-      if(!hasPhoto) return alert('Ajoutez au moins une photo pour cette station.')
+    // upload en arrière-plan vers R2
+    const teamId = team.join('-') || 'anon';
+    for (const file of list) {
+      try {
+        const { url } = await uploadPhoto(currentStation.id, teamId, file);
+        setPhotos((p) => {
+          const arr = (p[currentStation.id] || []).map((x) =>
+            x.file === file ? { ...x, remote: url } : x
+          );
+          return { ...p, [currentStation.id]: arr };
+        });
+      } catch (e) {
+        console.error('Upload failed', e);
+      }
     }
-    if(currentStation.requiresMeasurement){
-      const val = (measurements[currentStation.id] ?? '').toString().trim()
-      if(!val) return alert('Entrez la mesure demandée pour cette station.')
+  };
+
+  const validateAndUnlock = async () => {
+    if (!currentStation) return;
+
+    // exigences (photo/mesure) inchangées
+    if (currentStation.requiresPhoto) {
+      const hasPhoto = (photos[currentStation.id] || []).length > 0;
+      if (!hasPhoto) return alert('Ajoutez au moins une photo pour cette station.');
+    }
+    if (currentStation.requiresMeasurement) {
+      const val = (measurements[currentStation.id] ?? '').toString().trim();
+      if (!val) return alert('Entrez la mesure demandée pour cette station.');
     }
 
-    if(expected && got===expected){ setUnlocked(true) } else { alert('Code invalide. Réessayez.') }
-  }
+    try {
+      await validateCode(currentStation.id, codeInput);
+      setUnlocked(true);
+    } catch {
+      alert('Code invalide. Réessayez.');
+    }
+  };
 
   const goNext = ()=>{
     if(currentIdx + 1 < STATIONS.length){
