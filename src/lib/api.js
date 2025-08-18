@@ -60,11 +60,6 @@ export async function adminPhotos(teamId, cursor = '') {
   return res.json(); // { items, cursor, truncated }
 }
 
-function adminHeaders() {
-  const t = localStorage.getItem('admin_token') || '';
-  return t ? { Authorization: `Bearer ${t}` } : {};
-}
-
 export async function adminReset(scope='teams') {
   const res = await fetch('/api/admin/reset', {
     method: 'POST',
