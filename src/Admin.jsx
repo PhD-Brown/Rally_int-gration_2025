@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-// On importe la nouvelle fonction
 import { adminLeaderboard, adminPhotos, adminReset, getAdminTeamDetails } from '@/lib/api'
 
 function fmtTime(s=0){ s=Math.max(0, s|0); const h=String(Math.floor(s/3600)).padStart(2,'0'); const m=String(Math.floor((s%3600)/60)).padStart(2,'0'); const sec=String(s%60).padStart(2,'0'); return h==='00' ? `${m}:${sec}` : `${h}:${m}:${sec}` }
@@ -46,16 +45,15 @@ export default function Admin() {
     }
   }
   
-  // NOUVELLE FONCTION pour gérer la sélection
   const handleSelectTeam = async (teamSummary) => {
     try {
-      // On va chercher les détails complets
       const fullTeamData = await getAdminTeamDetails(teamSummary.teamId);
       setSelected(fullTeamData);
       loadPhotos(fullTeamData.teamId, true);
     } catch (e) {
-      setError("Impossible de charger les détails de l'équipe.");
-      setSelected(teamSummary); // On garde au moins le résumé
+      console.error("Erreur lors de la récupération des détails de l'équipe:", e);
+      setError("Impossible de charger les détails de l'équipe (voir console F12).");
+      setSelected(teamSummary);
     }
   };
 
@@ -64,8 +62,8 @@ export default function Admin() {
     try {
       await adminReset(resetScope);
       setPhotos([]); setCursor('');
+      setSelected(null);
       await loadLeaders();
-      if (selected) await loadPhotos(selected.teamId, true);
     } catch (e) { alert('Échec du reset (token ?)'); }
   };
 
@@ -139,39 +137,48 @@ export default function Admin() {
           </CardHeader>
           <CardContent className="space-y-6">
             {!selected && <div className="text-sm text-slate-500">Sélectionne une équipe à gauche.</div>}
-            {selected && Object.keys(byStation).sort().map(st => (
-              <div key={st}>
-                <div className="mb-2 text-sm font-medium">Station {st}</div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {(byStation[st] || []).map(ph => (
-                    <a key={ph.key} href={ph.url} target="_blank" rel="noreferrer" className="block rounded-xl overflow-hidden border bg-white">
-                      <img src={ph.url} alt={ph.filename} className="w-full h-40 object-cover"/>
-                      <div className="p-2 text-xs text-slate-600 truncate">{ph.filename}</div>
-                    </a>
-                  ))}
-                </div>
-                
-                {(() => {
-                  if (!selected || !selected.stations) return null;
-                  const stationData = selected.stations.find(x => x.id === st);
-                  if (!stationData || (!stationData.measurement && !stationData.notes)) return null;
-                  
-                  return (
-                    <div className="text-xs text-slate-700 mt-2 p-3 rounded-lg border bg-slate-50">
-                      {stationData.measurement && (
-                        <div><strong className="font-medium">Mesure :</strong> {stationData.measurement}</div>
-                      )}
-                      {stationData.notes && (
-                        <div className="mt-1">
-                          <strong className="font-medium">Notes :</strong>
-                          <p className="whitespace-pre-wrap pl-2">{stationData.notes}</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            ))}
+            
+            {/* CORRECTION FINALE : On itère sur les stations de l'équipe, pas sur les photos */}
+            {selected && selected.stations && selected.stations
+              .sort((a, b) => a.id.localeCompare(b.id))
+              .map(stationData => {
+                const st = stationData.id;
+                const stationPhotos = byStation[st] || [];
+
+                return (
+                  <div key={st}>
+                    <div className="mb-2 text-sm font-medium">Station {st}</div>
+                    
+                    {stationPhotos.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {stationPhotos.map(ph => (
+                          <a key={ph.key} href={ph.url} target="_blank" rel="noreferrer" className="block rounded-xl overflow-hidden border bg-white">
+                            <img src={ph.url} alt={ph.filename} className="w-full h-40 object-cover"/>
+                            <div className="p-2 text-xs text-slate-600 truncate">{ph.filename}</div>
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500 italic p-2 border-dashed border rounded-lg">Aucune photo pour cette station.</div>
+                    )}
+                    
+                    {(stationData.measurement || stationData.notes) && (
+                      <div className="text-xs text-slate-700 mt-2 p-3 rounded-lg border bg-slate-50">
+                        {stationData.measurement && (
+                          <div><strong className="font-medium">Mesure :</strong> {stationData.measurement}</div>
+                        )}
+                        {stationData.notes && (
+                          <div className="mt-1">
+                            <strong className="font-medium">Notes :</strong>
+                            <p className="whitespace-pre-wrap pl-2">{stationData.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+            })}
+
             {selected && (
               <div className="flex items-center justify-center">
                 <Button onClick={()=>loadPhotos(selected.teamId, false)} disabled={!cursor || loading}>
