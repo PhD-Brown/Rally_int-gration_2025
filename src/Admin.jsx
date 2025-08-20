@@ -88,7 +88,8 @@ export default function Admin() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6 grid md:grid-cols-5 gap-4">
-        <Card className="md-col-span-2">
+        {/* CORRIGÉ : md:col-span-2 au lieu de md-col-span-2 */}
+        <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Classement</CardTitle>
           </CardHeader>
@@ -111,6 +112,7 @@ export default function Admin() {
                 </div>
               ))}
             </div>
+            {/* CORRIGÉ : Le bloc de réinitialisation était manquant */}
             <div className="mt-4 flex items-center gap-2">
               <select className="border rounded-lg px-2 py-1" value={resetScope} onChange={(e) => setResetScope(e.target.value)}>
                 <option value="teams">Réinitialiser équipes (KV)</option>
@@ -124,7 +126,8 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card className="md-col-span-3">
+        {/* CORRIGÉ : md:col-span-3 au lieu de md-col-span-3 */}
+        <Card className="md:col-span-3">
           <CardHeader>
             <CardTitle>Photos — {selected?.teamId || 'Aucune équipe sélectionnée'}</CardTitle>
           </CardHeader>
@@ -133,7 +136,7 @@ export default function Admin() {
             {selected && Object.keys(byStation).sort().map(st => (
               <div key={st}>
                 <div className="mb-2 text-sm font-medium">Station {st}</div>
-                <div className="grid grid-cols-2 md-grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {(byStation[st] || []).map(ph => (
                     <a key={ph.key} href={ph.url} target="_blank" rel="noreferrer" className="block rounded-xl overflow-hidden border bg-white">
                       <img src={ph.url} alt={ph.filename} className="w-full h-40 object-cover"/>
