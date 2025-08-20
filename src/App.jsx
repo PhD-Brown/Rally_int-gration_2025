@@ -146,36 +146,47 @@ export default function RallyeULApp() {
   };
 
   const validateAndUnlock = async () => {
-    if (!currentStation) return;
+      if (!currentStation) return;
 
-    // exigences (photo/mesure) inchangées
-    if (currentStation.requiresPhoto) {
-      const hasPhoto = (photos[currentStation.id] || []).length > 0;
-      if (!hasPhoto) return alert('Ajoutez au moins une photo pour cette station.');
-    }
-    if (currentStation.requiresMeasurement) {
-      const val = (measurements[currentStation.id] ?? '').toString().trim();
-      if (!val) return alert('Entrez la mesure demandée pour cette station.');
-    }
+      try {
+        // 1. On valide le code en premier. Si c'est faux, on va directement au 'catch'.
+        await validateCode(currentStation.id, codeInput);
 
-    try {
-      await validateCode(currentStation.id, codeInput);
-      setUnlocked(true);
+        // 2. Le code est bon ! On sauvegarde immédiatement les textes.
+        const teamId = team.join('-') || 'anon';
+        const measurement = (measurements[currentStation.id] ?? '').toString().slice(0, 120);
+        const notesText   = (notes[currentStation.id] ?? '').toString().slice(0, 2000);
 
-      const teamId = team.join('-') || 'anon';
+        await pushProgress(teamId, currentStation.id, seconds, {
+          measurement,
+          notes: notesText,
+        });
 
-      // --- NOUVEAU : on prépare ce qu’on envoie
-      const measurement = (measurements[currentStation.id] ?? '').toString().slice(0, 120);
-      const notesText   = (notes[currentStation.id] ?? '').toString().slice(0, 2000);
+        // 3. Maintenant, on vérifie s'il manque des choses pour DÉVERROUILLER l'étape suivante.
+        if (currentStation.requiresPhoto) {
+          const hasPhoto = (photos[currentStation.id] || []).length > 0;
+          if (!hasPhoto) {
+            // Le texte est sauvegardé, mais on ne peut pas continuer.
+            alert('Code correct ! Il manque une photo pour déverrouiller la suite.');
+            return; 
+          }
+        }
+        if (currentStation.requiresMeasurement) {
+          const val = (measurements[currentStation.id] ?? '').toString().trim();
+          if (!val) {
+            // Le texte est sauvegardé, mais on ne peut pas continuer.
+            alert('Code correct ! Il manque la mesure demandée pour déverrouiller la suite.');
+            return;
+          }
+        }
 
-      await pushProgress(teamId, currentStation.id, seconds, {
-        measurement,
-        notes: notesText,
-      });
-    } catch {
-      alert('Code invalide. Réessayez.');
-    }
-  };
+        // 4. Si toutes les conditions sont remplies, on déverrouille.
+        setUnlocked(true);
+
+      } catch {
+        alert('Code invalide. Réessayez.');
+      }
+    };
 
   const goNext = ()=>{
     if(currentIdx + 1 < STATIONS.length){
