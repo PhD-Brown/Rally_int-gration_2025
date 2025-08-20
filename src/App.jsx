@@ -21,7 +21,7 @@ const STATIONS = [
   { id: 'S05', name: 'Tunnel de Physique', clue: "À compléter !", code: 'UL-005', requiresMeasurement: false, requiresMeasurement: false, image: '/indices/fresque_physique.jpg' },
   { id: 'S06', name: 'Pavillon Abitibi-Price - Globe Terrestre', clue: "À compléter !", code: 'UL-006', requiresPhoto: false, requiresMeasurement: false, image: '/indices/globe_abitibi.jpg' },
   { id: 'S07', name: 'Bibliothèque Jean-Charles-Bonenfant', clue: "À compléter !", code: 'UL-007', requiresPhoto: false, requiresMeasurement: false, image: '/indices/bibliotheque_bonenfant.jpg' },
-  { id: 'S08', name: 'Boisé', clue: "À compléter !", code: 'UL-008', requiresPhoto: false, requiresMeasurement: false, image: '/indices/boise.jpg' },
+  { id: 'S08', name: 'Boisé', clue: "À compléter !", code: 'UL-008', requiresPhoto: false, requiresMeasurement: true, image: '/indices/boise.jpg' },
   { id: 'S09', name: 'Pavillon Vachon - ADÉPUL', clue: "À compléter !", code: 'UL-009', requiresPhoto: false, requiresMeasurement: false, image: '/indices/adepul.jpg' },
   { id: 'S10', name: 'Pavillon Pouliot - Salle de classe', clue: "À compléter !", code: 'UL-010', requiresPhoto: false, requiresMeasurement: false, image: '/indices/salle_de_classe.jpg' },
   { id: 'S11', name: 'Cafétéria Pouliot', clue: "À compléter !", code: 'UL-011', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cafeteria_pouliot.jpg' },
