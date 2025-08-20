@@ -14,28 +14,28 @@ import Admin from './Admin.jsx'
 
 // --- DÉMO DES 21 STATIONS (à adapter) ---
 const STATIONS = [
-  { id: 'S01', name: 'Pavillon Alexandre-Vachon (VCH) — Hall', clue: 'Trouvez la silhouette moléculaire au rez-de-chaussée.', code: 'UL-001', requiresPhoto: false, requiresMeasurement: false },
-  { id: 'S02', name: 'Bibliothèque Jean-Charles-Bonenfant — Entrée', clue: "Comptez le nombre de colonnes visibles à l'entrée principale.", code: 'UL-002', requiresPhoto: false, requiresMeasurement: true },
-  { id: 'S03', name: "PEPS — Mur d'escalade", clue: 'Cherchez la prise la plus haute côté gauche.', code: 'UL-003', requiresPhoto: true, requiresMeasurement: false },
-  { id: 'S04', name: 'Pavillon Desjardins — Agora', clue: 'Que dit la grande bannière au centre?', code: 'UL-004', requiresPhoto: false, requiresMeasurement: false },
-  { id: 'S05', name: "Pavillon d'Optique-Photonique (COPL) — Cage d'escalier", clue: "Mesurez (en s) le temps de chute d'une balle au centre (simulation).", code: 'UL-005', requiresPhoto: false, requiresMeasurement: true },
-  { id: 'S06', name: 'Pavillon Pouliot — Maquette', clue: 'Prenez une photo de la maquette technique.', code: 'UL-006', requiresPhoto: true, requiresMeasurement: false },
-  { id: 'S07', name: 'Pavillon Abitibi-Price — Couloir', clue: 'Repérez la fresque et notez le thème.', code: 'UL-007', requiresPhoto: false, requiresMeasurement: false },
-  { id: 'S08', name: 'Grand Axe — Fontaine', clue: "Combien de jets d'eau sont actifs?", code: 'UL-008', requiresPhoto: false, requiresMeasurement: true },
-  { id: 'S09', name: 'Vachon — Jardin intérieur', clue: 'Photo avec la plante la plus haute.', code: 'UL-009', requiresPhoto: true, requiresMeasurement: false },
-  { id: 'S10', name: 'Science — Amphithéâtre', clue: 'Quelle lettre est gravée au-dessus de la porte?', code: 'UL-010', requiresPhoto: false, requiresMeasurement: false },
-  { id: 'S11', name: 'Cafétéria — Comptoir', clue: 'Notez le plat du jour végétarien.', code: 'UL-011', requiresPhoto: false, requiresMeasurement: false },
-  { id: 'S12', name: 'Pavillon Enviro — Atrium', clue: "Photographiez l'œuvre principale.", code: 'UL-012', requiresPhoto: true, requiresMeasurement: false },
-  { id: 'S13', name: 'Stade intérieur — Piste', clue: 'Longueur d\'un tour? (m)', code: 'UL-013', requiresPhoto: false, requiresMeasurement: true },
-  { id: 'S14', name: "Musée — Hall d'entrée", clue: "Quel est le thème de l'expo du mois?", code: 'UL-014', requiresPhoto: false, requiresMeasurement: false },
-  { id: 'S15', name: 'Boisé — Sentier', clue: "Photo d'une feuille différente de l'érable.", code: 'UL-015', requiresPhoto: true, requiresMeasurement: false },
-  { id: 'S16', name: 'Pavillon De Koninck — Escaliers', clue: 'Nombre de marches entre RC et 2e?', code: 'UL-016', requiresPhoto: false, requiresMeasurement: true },
-  { id: 'S17', name: 'Pavillon Palasis-Prince — Hall', clue: 'Quelle couleur domine?', code: 'UL-017', requiresPhoto: false, requiresMeasurement: false },
-  { id: 'S18', name: 'PEPS — Terrain extérieur', clue: "Photo d'un objet de sport vert.", code: 'UL-018', requiresPhoto: true, requiresMeasurement: false },
-  { id: 'S19', name: 'Stationnement — Guérite', clue: 'Quel est le dernier chiffre affiché au panneau?', code: 'UL-019', requiresPhoto: false, requiresMeasurement: true },
-  { id: 'S20', name: 'Pavillon Ferdinand-Vandry — Atrium', clue: 'Quel instrument est exposé?', code: 'UL-020', requiresPhoto: false, requiresMeasurement: false },
-  { id: 'S21', name: 'Pavillon Maurice-Pollack — Scène', clue: "Photo d'une scène/estrade.", code: 'UL-021', requiresPhoto: true, requiresMeasurement: false },
-]
+  { id: 'S01', name: 'Serres du Complexe des Serres', clue: "Trouvez la porte 4059. Quel avertissement de risque est affiché dessus ?", code: 'UL-001', requiresPhoto: true, image: '/indices/serres.jpg' },
+  { id: 'S02', name: 'PEPS - La Caverne', clue: "Surplombez la piste de course intérieure. Quel est le nom de cette section, écrit en grosses lettres ?", code: 'UL-002', requiresPhoto: false, image: '/indices/la_caverne.jpg' },
+  { id: 'S03', name: 'Stade Telus (PEPS)', clue: "Prenez une photo de votre équipe avec le terrain de football en arrière-plan.", code: 'UL-003', requiresPhoto: true, image: '/indices/stade_interieur.jpg' },
+  { id: 'S04', name: 'Pavillon Desjardins - Agora', clue: "Trouvez le tracteur rouge suspendu. Quel est le nom du pub universitaire juste à côté ?", code: 'UL-004', requiresPhoto: true, image: '/indices/tracteur_desjardins.jpg' },
+  { id: 'S05', name: 'Tunnel de Physique', clue: "Dans le tunnel, trouvez la fresque des 'Jeux de la Physique'. En quelle année ont-ils eu lieu ?", code: 'UL-005', requiresMeasurement: true, image: '/indices/fresque_physique.jpg' },
+  { id: 'S06', name: 'Pavillon Abitibi-Price - Globe Terrestre', clue: "Prenez une photo de quelqu'un de votre équipe qui fait semblant de porter le monde (le globe) sur ses épaules.", code: 'UL-006', requiresPhoto: true, image: '/indices/globe_abitibi.jpg' },
+  { id: 'S07', name: 'Bibliothèque Jean-Charles-Bonenfant', clue: "À l'entrée de la bibliothèque scientifique, un mot est écrit en gros sur la porte de gauche et un autre sur celle de droite. Lequel est sur la porte de gauche ?", code: 'UL-007', requiresPhoto: false, image: '/indices/bibliotheque_bonenfant.jpg' },
+  { id: 'S08', name: 'Boisé', clue: "Trouvez la terrasse en bois cachée dans la forêt. Prenez une photo de votre équipe en train de relaxer dessus.", code: 'UL-008', requiresPhoto: true, image: '/indices/boise.jpg' },
+  { id: 'S09', name: 'Pavillon Vachon - ADÉPUL', clue: "Trouvez le babillard de l'Association des étudiants en physique (ADÉPUL). Prenez une photo de leur logo.", code: 'UL-009', requiresPhoto: true, image: '/indices/adepul.jpg' },
+  { id: 'S10', name: 'Pavillon Pouliot - Salle de classe', clue: "Trouvez une grande salle de classe vide. Écrivez le nom de votre équipe sur le tableau et prenez une photo.", code: 'UL-010', requiresPhoto: true, image: '/indices/salle_de_classe.jpg' },
+  { id: 'S11', name: 'Cafétéria Pouliot', clue: "Combien de chaises rouges pouvez-vous compter dans la zone principale de la cafétéria ?", code: 'UL-011', requiresMeasurement: true, image: '/indices/cafeteria_pouliot.jpg' },
+  { id: 'S12', name: 'Extérieur - Cadran Solaire', clue: "Trouvez le cadran solaire entre les pavillons. Quelle heure est-il... au soleil ?", code: 'UL-012', requiresMeasurement: true, image: '/indices/cadran_solaire.jpg' },
+  { id: 'S13', name: "Pavillon d'Optique-Photonique (COPL)", clue: "Trouvez le long corridor avec un mur rouge. Prenez une photo créative en utilisant les ombres projetées par les fenêtres.", code: 'UL-013', requiresPhoto: true, image: '/indices/corridor_copl.jpg' },
+  { id: 'S14', name: 'Pavillon Vachon - Département de Physique', clue: "Trouvez le panneau suspendu indiquant le 'Département de physique, de génie physique et d'optique'.", code: 'UL-014', requiresPhoto: false, image: '/indices/departement_physique.jpg' },
+  { id: 'S15', name: 'Pavillon Enviro - Atrium', clue: "Photographiez le bâtiment principal de ce pavillon, celui qui est recouvert de lierre. C'est une œuvre d'art vivante !", code: 'UL-015', requiresPhoto: true, image: '/indices/enviro.jpg' },
+  { id: 'S16', name: 'Corridor du Pouliot/Vachon', clue: "Trouvez la porte du local 141. Quel est le nom de famille affiché ?", code: 'UL-016', requiresPhoto: false, image: '/indices/porte_cote.jpg' },
+  { id: 'S17', name: 'Babillard "Festijeu"', clue: "Trouvez le babillard avec une affiche 'Festijeu'. Quel est le mot écrit à la main dessus ?", code: 'UL-017', requiresPhoto: false, image: '/indices/festijeu.jpg' },
+  { id: 'S18', name: 'Tableau de classe de Physique', clue: "Trouvez le tableau vert où est écrit 'Bienvenue ma bande de nerds!!!'. Quelle est la borne supérieure de l'intégrale ?", code: 'UL-018', requiresMeasurement: true, image: '/indices/tableau_nerds.jpg' },
+  { id: 'S19', name: 'Grand Axe - Fontaine', clue: "Comptez le nombre de jets d'eau actifs à la fontaine du Grand Axe.", code: 'UL-019', requiresMeasurement: true },
+  { id: 'S20', name: "PEPS — Mur d'escalade", clue: 'Cherchez la prise la plus haute côté gauche du mur d\'escalade.', code: 'UL-020', requiresPhoto: true },
+  { id: 'S21', name: 'Jardin intérieur Vachon', clue: "Prenez une photo avec la plante la plus haute du jardin intérieur.", code: 'UL-021', requiresPhoto: true }
+];
 
 function mulberry32(a){return function(){let t=a+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296}}
 function seededShuffle(arr, seed){const rng=mulberry32(seed||1); const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]} return a}
@@ -312,7 +312,15 @@ export default function RallyeULApp() {
                       <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
                         <p className="leading-relaxed"><span className="font-semibold">Indice:</span> {currentStation.clue}</p>
                       </div>
-
+                      {currentStation.image && (
+                        <div className="mt-4">
+                          <img 
+                            src={currentStation.image} 
+                            alt="Image d'indice" 
+                            className="rounded-xl w-full max-h-80 object-cover border" 
+                          />
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <label className="text-sm font-medium flex items-center gap-2"><ImageIcon className="h-4 w-4"/> Photo(s) sur place {currentStation.requiresPhoto && <Badge className="ml-2" variant="secondary">Obligatoire</Badge>}</label>
