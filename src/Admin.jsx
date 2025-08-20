@@ -11,7 +11,6 @@ function fmtTime(s=0){ s=Math.max(0, s|0); const h=String(Math.floor(s/3600)).pa
 export default function Admin() {
   const [token, setToken] = React.useState(localStorage.getItem('admin_token') || '')
   const [teams, setTeams] = React.useState([])
-  // MODIFIÉ : On stocke l'objet équipe complet, pas juste l'ID
   const [selected, setSelected] = React.useState(null)
   const [photos, setPhotos] = React.useState([])
   const [cursor, setCursor] = React.useState('')
@@ -24,7 +23,6 @@ export default function Admin() {
     try {
       const data = await adminLeaderboard()
       setTeams(data)
-      // MODIFIÉ : On sélectionne le premier objet équipe par défaut
       if (!selected && data.length) {
         setSelected(data[0])
       }
@@ -37,7 +35,6 @@ export default function Admin() {
     if(!selected) return
     setLoading(true); setError('')
     try {
-      // MODIFIÉ : On utilise l'ID de l'objet équipe sélectionné
       const res = await adminPhotos(selected.teamId, reset ? '' : cursor)
       setCursor(res.cursor || '')
       setPhotos(prev => reset ? res.items : [...prev, ...res.items])
@@ -91,7 +88,7 @@ export default function Admin() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6 grid md:grid-cols-5 gap-4">
-        <Card className="md:col-span-2">
+        <Card className="md-col-span-2">
           <CardHeader>
             <CardTitle>Classement</CardTitle>
           </CardHeader>
@@ -102,7 +99,6 @@ export default function Admin() {
               {teams.map(t => (
                 <div key={t.teamId}
                      className={`p-3 rounded-xl border cursor-pointer ${selected?.teamId === t.teamId ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}
-                     // MODIFIÉ : On stocke l'objet équipe complet au clic
                      onClick={() => setSelected(t)}>
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{t.rank ? `#${t.rank}` : ''} {t.teamId}</div>
@@ -128,9 +124,8 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-3">
+        <Card className="md-col-span-3">
           <CardHeader>
-            {/* MODIFIÉ : On utilise l'ID de l'objet équipe */}
             <CardTitle>Photos — {selected?.teamId || 'Aucune équipe sélectionnée'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -138,7 +133,7 @@ export default function Admin() {
             {selected && Object.keys(byStation).sort().map(st => (
               <div key={st}>
                 <div className="mb-2 text-sm font-medium">Station {st}</div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md-grid-cols-3 gap-3">
                   {(byStation[st] || []).map(ph => (
                     <a key={ph.key} href={ph.url} target="_blank" rel="noreferrer" className="block rounded-xl overflow-hidden border bg-white">
                       <img src={ph.url} alt={ph.filename} className="w-full h-40 object-cover"/>
@@ -147,7 +142,6 @@ export default function Admin() {
                   ))}
                 </div>
                 
-                {/* La logique ici est maintenant correcte car 'selected' contient les stations */}
                 {(() => {
                   if (!selected || !selected.stations) return null;
                   const stationData = selected.stations.find(x => x.id === st);
