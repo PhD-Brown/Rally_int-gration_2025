@@ -159,12 +159,19 @@ export default function RallyeULApp() {
     }
 
     try {
-      await validateCode(currentStation.id, codeInput); // appelle /api/validate-code
+      await validateCode(currentStation.id, codeInput);
       setUnlocked(true);
 
-      // push progression (pour classement)
       const teamId = team.join('-') || 'anon';
-      try { await pushProgress(teamId, currentStation.id, seconds); } catch (e) { console.warn('pushProgress failed', e); }
+
+      // --- NOUVEAU : on prépare ce qu’on envoie
+      const measurement = (measurements[currentStation.id] ?? '').toString().slice(0, 120);
+      const notesText   = (notes[currentStation.id] ?? '').toString().slice(0, 2000);
+
+      await pushProgress(teamId, currentStation.id, seconds, {
+        measurement,
+        notes: notesText,
+      });
     } catch {
       alert('Code invalide. Réessayez.');
     }

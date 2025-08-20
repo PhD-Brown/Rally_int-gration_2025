@@ -28,12 +28,14 @@ export async function registerTeam(teamId) {
   });
 }
 
-export async function pushProgress(teamId, stationId, seconds) {
-  await fetch('/api/progress', {
+export async function pushProgress(teamId, stationId, seconds, payload = {}) {
+  const res = await fetch('/api/progress', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ teamId, stationId, seconds }),
+    body: JSON.stringify({ teamId, stationId, seconds, ...payload }),
   });
+  if (!res.ok) throw new Error('PUSH_FAILED');
+  return res.json();
 }
 
 // ---- admin helpers ----

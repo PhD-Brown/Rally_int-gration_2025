@@ -131,7 +131,7 @@ export default function Admin() {
 
         <Card className="md:col-span-3">
           <CardHeader>
-            <CardTitle>Photos — {selected || 'Aucune équipe sélectionnée'}</CardTitle>
+            <CardTitle>Photos — {selected?.teamId || 'Aucune équipe sélectionnée'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {!selected && <div className="text-sm text-slate-500">Sélectionne une équipe à gauche.</div>}
@@ -147,6 +147,25 @@ export default function Admin() {
                     </a>
                   ))}
                 </div>
+                {(() => {
+                  if (!selected || !selected.stations) return null;
+                  const stationData = selected.stations.find(x => x.id === st);
+                  if (!stationData || (!stationData.measurement && !stationData.notes)) return null;
+                  
+                  return (
+                    <div className="text-xs text-slate-700 mt-2 p-3 rounded-lg border bg-slate-50">
+                      {stationData.measurement && (
+                        <div><strong className="font-medium">Mesure :</strong> {stationData.measurement}</div>
+                      )}
+                      {stationData.notes && (
+                        <div className="mt-1">
+                          <strong className="font-medium">Notes :</strong>
+                          <p className="whitespace-pre-wrap pl-2">{stationData.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ))}
             {selected && (

@@ -1,40 +1,69 @@
-// POST: { teamId, stationId, seconds }
-// GET : renvoie un leaderboard simple
-
-export const onRequestPost = async ({ request, env }) => {
-  try {
-    const { teamId, stationId, seconds } = await request.json();
-    if (!teamId || !stationId) return new Response('BAD_REQUEST', { status: 400 });
-
-    const key = `team:${teamId}`;
-    const raw = await env.RALLYE_KV.get(key);
-    const now = Date.now();
-
-    let rec = raw ? JSON.parse(raw) : { teamId, stations: [], last: now, started: now };
-    if (!rec.stations.includes(stationId)) rec.stations.push(stationId);
-    rec.last = now;
-    rec.seconds = typeof seconds === 'number' ? seconds : rec.seconds;
-
-    await env.RALLYE_KV.put(key, JSON.stringify(rec));
-    return new Response(JSON.stringify({ ok: true, done: rec.stations.length }), {
-      headers: { 'content-type': 'application/json' },
-    });
-  } catch (e) {
-    return new Response('ERROR', { status: 500 });
-  }
-};
-
 export const onRequestGet = async ({ env }) => {
-  // petit scan (KV n’a pas de “list by prefix” global côté Pages; on stocke un index léger)
+  // Retourne le classement (inchangé)
   const idxRaw = await env.RALLYE_KV.get('teams:index');
   const ids = idxRaw ? JSON.parse(idxRaw) : [];
   const recs = [];
-
   for (const id of ids) {
     const raw = await env.RALLYE_KV.get(`team:${id}`);
-    if (raw) recs.push(JSON.parse(raw));
+    recs.push(raw ? JSON.parse(raw) : { teamId: id, stations: [], seconds: 0, last: 0, started: 0 });
+  }
+  recs.sort((a, b) =>
+    (b.stations.length - a.stations.length) ||
+    ((a.seconds || Infinity) - (b.seconds || Infinity)) ||
+    ((a.last || Infinity) - (b.last || Infinity))
+  );
+  return new Response(JSON.stringify(recs), { headers: { 'content-type': 'application/json' } });
+};
+
+export const onRequestPost = async ({ request, env }) => {
+  const body = await request.json();
+  const teamId = body.teamId?.toString().trim();
+  const stationId = body.stationId?.toString().trim();
+  const seconds = Number.isFinite(body.seconds) ? body.seconds : null;
+  if (!teamId || !stationId) {
+    return new Response('Bad Request', { status: 400 });
   }
 
-  recs.sort((a, b) => (b.stations.length - a.stations.length) || ((a.last||0) - (b.last||0)));
-  return new Response(JSON.stringify(recs.slice(0, 50)), { headers: { 'content-type': 'application/json' } });
+  const now = Date.now();
+  const key = `team:${teamId}`;
+  const raw = await env.RALLYE_KV.get(key);
+  const rec = raw ? JSON.parse(raw) : { teamId, stations: [], seconds: 0, started: now, last: now };
+
+  // Nettoyage des champs libres
+  const cleanNotes =
+    typeof body.notes === 'string' ? body.notes.slice(0, 2000) : null;
+  const cleanMeas =
+    body.measurement == null
+      ? null
+      : (typeof body.measurement === 'string'
+          ? body.measurement
+          : String(body.measurement)
+        ).slice(0, 120);
+
+  rec.last = now;
+  if (seconds != null) rec.seconds = seconds;
+
+  // upsert de la station
+  const idx = rec.stations.findIndex(s => s.id === stationId);
+  const data = {
+    id: stationId,
+    seconds: seconds ?? rec.stations[idx]?.seconds ?? 0,
+    measurement: cleanMeas,
+    notes: cleanNotes,
+    at: now,
+  };
+  if (idx === -1) rec.stations.push(data);
+  else rec.stations[idx] = { ...rec.stations[idx], ...data };
+
+  // maintenir l’index des équipes
+  const iKey = 'teams:index';
+  const iRaw = await env.RALLYE_KV.get(iKey);
+  const list = iRaw ? JSON.parse(iRaw) : [];
+  if (!list.includes(teamId)) {
+    list.push(teamId);
+    await env.RALLYE_KV.put(iKey, JSON.stringify(list));
+  }
+
+  await env.RALLYE_KV.put(key, JSON.stringify(rec));
+  return new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json' } });
 };
