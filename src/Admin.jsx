@@ -11,7 +11,8 @@ function fmtTime(s=0){ s=Math.max(0, s|0); const h=String(Math.floor(s/3600)).pa
 export default function Admin() {
   const [token, setToken] = React.useState(localStorage.getItem('admin_token') || '')
   const [teams, setTeams] = React.useState([])
-  const [selected, setSelected] = React.useState('')
+  // MODIFIÉ : On stocke l'objet équipe complet, pas juste l'ID
+  const [selected, setSelected] = React.useState(null)
   const [photos, setPhotos] = React.useState([])
   const [cursor, setCursor] = React.useState('')
   const [loading, setLoading] = React.useState(false)
@@ -23,7 +24,10 @@ export default function Admin() {
     try {
       const data = await adminLeaderboard()
       setTeams(data)
-      if (!selected && data.length) setSelected(data[0].teamId)
+      // MODIFIÉ : On sélectionne le premier objet équipe par défaut
+      if (!selected && data.length) {
+        setSelected(data[0])
+      }
     } catch (e) {
       setError("Non autorisé. Entre le token d'admin.")
     }
@@ -33,7 +37,8 @@ export default function Admin() {
     if(!selected) return
     setLoading(true); setError('')
     try {
-      const res = await adminPhotos(selected, reset ? '' : cursor)
+      // MODIFIÉ : On utilise l'ID de l'objet équipe sélectionné
+      const res = await adminPhotos(selected.teamId, reset ? '' : cursor)
       setCursor(res.cursor || '')
       setPhotos(prev => reset ? res.items : [...prev, ...res.items])
     } catch (e) {
@@ -43,7 +48,7 @@ export default function Admin() {
     }
   }
 
-    const doReset = async () => {
+  const doReset = async () => {
     if (!window.confirm(`Confirmer le reset ${resetScope === 'all' ? 'COMPLET' : resetScope} ?`)) return;
     try {
       await adminReset(resetScope);
@@ -54,8 +59,10 @@ export default function Admin() {
     } catch (e) { alert('Échec du reset (token ?)'); }
   };
 
-  React.useEffect(()=>{ loadLeaders() }, [])      // au montage
-  React.useEffect(()=>{ loadPhotos(true) }, [selected]) // changement d'équipe
+  React.useEffect(()=>{ loadLeaders() }, [])
+  React.useEffect(()=>{ 
+    if(selected) loadPhotos(true) 
+  }, [selected])
 
   const saveToken = () => {
     localStorage.setItem('admin_token', token.trim())
@@ -64,7 +71,6 @@ export default function Admin() {
     if (selected) loadPhotos(true)
   }
 
-  // groupage par station
   const byStation = photos.reduce((acc,p)=>{
     const k = p.stationId || 'UNKNOWN'
     acc[k] = acc[k] || []
@@ -95,8 +101,9 @@ export default function Admin() {
             <div className="space-y-2">
               {teams.map(t => (
                 <div key={t.teamId}
-                     className={`p-3 rounded-xl border cursor-pointer ${selected===t.teamId ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}
-                     onClick={()=>setSelected(t.teamId)}>
+                     className={`p-3 rounded-xl border cursor-pointer ${selected?.teamId === t.teamId ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}
+                     // MODIFIÉ : On stocke l'objet équipe complet au clic
+                     onClick={() => setSelected(t)}>
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{t.rank ? `#${t.rank}` : ''} {t.teamId}</div>
                     <Badge>{t.stations?.length || 0} / 21</Badge>
@@ -109,20 +116,12 @@ export default function Admin() {
               ))}
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <select
-                className="border rounded-lg px-2 py-1"
-                value={resetScope}
-                onChange={(e) => setResetScope(e.target.value)}
-              >
+              <select className="border rounded-lg px-2 py-1" value={resetScope} onChange={(e) => setResetScope(e.target.value)}>
                 <option value="teams">Réinitialiser équipes (KV)</option>
                 <option value="photos">Supprimer photos (R2)</option>
                 <option value="all">Tout (KV + photos)</option>
               </select>
-
-              <button
-                onClick={doReset}
-                className="px-3 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700"
-              >
+              <button onClick={doReset} className="px-3 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700">
                 Réinitialiser
               </button>
             </div>
@@ -131,6 +130,7 @@ export default function Admin() {
 
         <Card className="md:col-span-3">
           <CardHeader>
+            {/* MODIFIÉ : On utilise l'ID de l'objet équipe */}
             <CardTitle>Photos — {selected?.teamId || 'Aucune équipe sélectionnée'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -140,13 +140,14 @@ export default function Admin() {
                 <div className="mb-2 text-sm font-medium">Station {st}</div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {(byStation[st] || []).map(ph => (
-                    <a key={ph.key} href={ph.url} target="_blank" rel="noreferrer"
-                       className="block rounded-xl overflow-hidden border bg-white">
+                    <a key={ph.key} href={ph.url} target="_blank" rel="noreferrer" className="block rounded-xl overflow-hidden border bg-white">
                       <img src={ph.url} alt={ph.filename} className="w-full h-40 object-cover"/>
                       <div className="p-2 text-xs text-slate-600 truncate">{ph.filename}</div>
                     </a>
                   ))}
                 </div>
+                
+                {/* La logique ici est maintenant correcte car 'selected' contient les stations */}
                 {(() => {
                   if (!selected || !selected.stations) return null;
                   const stationData = selected.stations.find(x => x.id === st);
