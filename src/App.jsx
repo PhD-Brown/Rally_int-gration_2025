@@ -42,10 +42,72 @@ function seededShuffle(arr, seed){const rng=mulberry32(seed||1); const a=[...arr
 
 const STORAGE_KEY = 'ul_rally_state_v1'
 
+// NOUVEAU COMPOSANT : LE PANNEAU DE DÉBOGAGE
+function DebugPanel({
+  team, onTeamChange,
+  route, onRouteChange,
+  stationIdx, onStationIdxChange,
+  onApply, onClose
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+        <Card className="shadow-2xl w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Panneau de Secours</CardTitle>
+            <CardDescription>Forcez un état pour une équipe. Idéal pour reprendre après une erreur.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Noms des membres</label>
+              <Input 
+                placeholder="Alex, Cath, ..." 
+                value={team} 
+                onChange={e => onTeamChange(e.target.value)} 
+              />
+              <p className="text-xs text-slate-500">Séparez les noms par une virgule.</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Numéro de parcours</label>
+              <Input 
+                placeholder="Ex: 12" 
+                value={route} 
+                onChange={e => onRouteChange(e.target.value)} 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Repartir à l'indice</label>
+              <select 
+                value={stationIdx} 
+                onChange={e => onStationIdxChange(e.target.value)}
+                className="flex h-10 w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm"
+              >
+                {STATIONS.map((station, index) => (
+                  <option key={station.id} value={index}>
+                    Indice #{index + 1}: {station.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </CardContent>
+          <CardFooter className="justify-between">
+            <Button variant="secondary" onClick={onClose}>Annuler</Button>
+            <Button onClick={onApply}>Appliquer et Démarrer</Button>
+          </CardFooter>
+        </Card>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function RallyeULApp() {
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
     return <Admin />
   }
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugTeam, setDebugTeam] = useState('');
+  const [debugRoute, setDebugRoute] = useState('');
+  const [debugStationIdx, setDebugStationIdx] = useState('0');
   const [team, setTeam] = useState([])
   const [memberName, setMemberName] = useState('')
   const [routeNumber, setRouteNumber] = useState('')
@@ -101,20 +163,54 @@ export default function RallyeULApp() {
   }
   const removeMember = (name)=> setTeam(t => t.filter(n => n!==name))
 
-  const startRun = async () => {
-    if (team.length === 0) return alert('Ajoutez au moins un membre.');
-    if (!routeNumber) return alert('Entrez un numéro de parcours.');
+  const applyDebugState = () => {
+    // Noms d'équipe (séparés par des virgules)
+    const teamNames = debugTeam.split(',').map(n => n.trim()).filter(Boolean);
+    if (teamNames.length === 0) return alert("Entrez au moins un nom d'équipe.");
+    
+    const routeNum = debugRoute.trim();
+    if (!routeNum) return alert("Entrez un numéro de parcours.");
 
-    // démarrer le chrono + reset étape
+    const stationIndex = parseInt(debugStationIdx, 10);
+
+    // Appliquer tous les changements
+    setTeam(teamNames);
+    setRouteNumber(routeNum);
+    setCurrentIdx(stationIndex);
+    
+    // Démarrer le rallye à partir de ce point
     setStartedAt(Date.now());
-    setCurrentIdx(0);
     setUnlocked(false);
     setCodeInput('');
-
-    // inscrire l’équipe côté serveur (fire-and-forget ok)
-    const teamId = team.join('-') || 'anon';
-    try { await registerTeam(teamId); } catch (e) { console.warn('registerTeam failed', e); }
+    
+    // Cacher le panneau
+    setShowDebug(false);
   };
+
+  const startRun = async () => {
+      // On vérifie le code secret EN PREMIER
+      if (routeNumber === '9999') {
+        setDebugTeam(team.join(', '));
+        setDebugRoute('');
+        setDebugStationIdx('0');
+        setShowDebug(true);
+        return;
+      }
+      
+      // Ensuite, on fait les validations normales
+      if (team.length === 0) return alert('Ajoutez au moins un membre.');
+      if (!routeNumber) return alert('Entrez un numéro de parcours.');
+
+      // démarrer le chrono + reset étape
+      setStartedAt(Date.now());
+      setCurrentIdx(0);
+      setUnlocked(false);
+      setCodeInput('');
+
+      // inscrire l’équipe côté serveur (fire-and-forget ok)
+      const teamId = team.join('-') || 'anon';
+      try { await registerTeam(teamId); } catch (e) { console.warn('registerTeam failed', e); }
+    };
 
   const handleUpload = async (files) => {
     if (!currentStation) return;
@@ -146,46 +242,46 @@ export default function RallyeULApp() {
   };
 
   const validateAndUnlock = async () => {
-    if (!currentStation) return;
+        if (!currentStation) return;
 
-    try {
-      // 1. On valide le code en premier.
-      await validateCode(currentStation.id, codeInput);
+        try {
+          // 1. On valide le code en premier.
+          await validateCode(currentStation.id, codeInput);
 
-      // 2. Le code est bon ! On sauvegarde TOUJOURS les textes à ce stade.
-      const teamId = team.join('-') || 'anon';
-      const measurement = (measurements[currentStation.id] ?? '').toString().slice(0, 120);
-      const notesText   = (notes[currentStation.id] ?? '').toString().slice(0, 2000);
+          // 2. Le code est bon ! On sauvegarde TOUJOURS les textes à ce stade.
+          const teamId = team.join('-') || 'anon';
+          const measurement = (measurements[currentStation.id] ?? '').toString().slice(0, 120);
+          const notesText   = (notes[currentStation.id] ?? '').toString().slice(0, 2000);
 
-      await pushProgress(teamId, currentStation.id, seconds, {
-        measurement,
-        notes: notesText,
-      });
+          await pushProgress(teamId, currentStation.id, seconds, {
+            measurement,
+            notes: notesText,
+          });
 
-      // 3. On vérifie maintenant si on peut DÉVERROUILLER.
-      if (currentStation.requiresPhoto) {
-        const hasPhoto = (photos[currentStation.id] || []).length > 0;
-        if (!hasPhoto) {
-          alert('Code correct ! Le texte a été sauvegardé. Il manque une photo pour déverrouiller la suite.');
-          return; 
+          // 3. On vérifie maintenant si on peut DÉVERROUILLER.
+          if (currentStation.requiresPhoto) {
+            const hasPhoto = (photos[currentStation.id] || []).length > 0;
+            if (!hasPhoto) {
+              alert('Code correct ! Le texte a été sauvegardé. Il manque une photo pour déverrouiller la suite.');
+              return; 
+            }
+          }
+          if (currentStation.requiresMeasurement) {
+            const val = (measurements[currentStation.id] ?? '').toString().trim();
+            if (!val) {
+              alert('Code correct ! Le texte a été sauvegardé. Il manque la mesure pour déverrouiller la suite.');
+              return;
+            }
+          }
+
+          // 4. Tout est bon, on déverrouille.
+          setUnlocked(true);
+
+        } catch (e) {
+          alert('Code invalide. Réessayez.');
         }
-      }
-      if (currentStation.requiresMeasurement) {
-        const val = (measurements[currentStation.id] ?? '').toString().trim();
-        if (!val) {
-          alert('Code correct ! Le texte a été sauvegardé. Il manque la mesure pour déverrouiller la suite.');
-          return;
-        }
-      }
-
-      // 4. Tout est bon, on déverrouille.
-      setUnlocked(true);
-
-    } catch (e) {
-      alert('Code invalide. Réessayez.');
-    }
-  };
-
+      };
+      
   const goNext = ()=>{
     if(currentIdx + 1 < STATIONS.length){
       setCurrentIdx(i=>i+1); setUnlocked(false); setCodeInput('')
@@ -388,6 +484,15 @@ export default function RallyeULApp() {
         )}
 
         <div className="pt-6 text-center text-xs text-slate-500">Baker is such a beast!!.</div>
+        {showDebug && (
+          <DebugPanel 
+            team={debugTeam} onTeamChange={setDebugTeam}
+            route={debugRoute} onRouteChange={setDebugRoute}
+            stationIdx={debugStationIdx} onStationIdxChange={setDebugStationIdx}
+            onApply={applyDebugState}
+            onClose={() => setShowDebug(false)}
+          />
+        )}
       </main>
     </div>
   )
