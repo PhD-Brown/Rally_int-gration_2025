@@ -71,3 +71,9 @@ export async function adminReset(scope='teams') {
   if (!res.ok) throw new Error('RESET_FAILED');
   return res.json();
 }
+
+export async function getAdminTeamDetails(teamId) {
+  const res = await fetch(`/api/admin/team?teamId=${teamId}`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch team details');
+  return res.json();
+}

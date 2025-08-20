@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { adminLeaderboard, adminPhotos, adminReset } from '@/lib/api'
+// On importe la nouvelle fonction
+import { adminLeaderboard, adminPhotos, adminReset, getAdminTeamDetails } from '@/lib/api'
 
 function fmtTime(s=0){ s=Math.max(0, s|0); const h=String(Math.floor(s/3600)).padStart(2,'0'); const m=String(Math.floor((s%3600)/60)).padStart(2,'0'); const sec=String(s%60).padStart(2,'0'); return h==='00' ? `${m}:${sec}` : `${h}:${m}:${sec}` }
 
@@ -24,18 +25,18 @@ export default function Admin() {
       const data = await adminLeaderboard()
       setTeams(data)
       if (!selected && data.length) {
-        setSelected(data[0])
+        handleSelectTeam(data[0])
       }
     } catch (e) {
       setError("Non autorisé. Entre le token d'admin.")
     }
   }
 
-  const loadPhotos = async (reset=true) => {
-    if(!selected) return
+  const loadPhotos = async (teamId, reset=true) => {
+    if(!teamId) return
     setLoading(true); setError('')
     try {
-      const res = await adminPhotos(selected.teamId, reset ? '' : cursor)
+      const res = await adminPhotos(teamId, reset ? '' : cursor)
       setCursor(res.cursor || '')
       setPhotos(prev => reset ? res.items : [...prev, ...res.items])
     } catch (e) {
@@ -44,6 +45,19 @@ export default function Admin() {
       setLoading(false)
     }
   }
+  
+  // NOUVELLE FONCTION pour gérer la sélection
+  const handleSelectTeam = async (teamSummary) => {
+    try {
+      // On va chercher les détails complets
+      const fullTeamData = await getAdminTeamDetails(teamSummary.teamId);
+      setSelected(fullTeamData);
+      loadPhotos(fullTeamData.teamId, true);
+    } catch (e) {
+      setError("Impossible de charger les détails de l'équipe.");
+      setSelected(teamSummary); // On garde au moins le résumé
+    }
+  };
 
   const doReset = async () => {
     if (!window.confirm(`Confirmer le reset ${resetScope === 'all' ? 'COMPLET' : resetScope} ?`)) return;
@@ -51,21 +65,16 @@ export default function Admin() {
       await adminReset(resetScope);
       setPhotos([]); setCursor('');
       await loadLeaders();
-      if (selected) await loadPhotos(true);
-      alert('Réinitialisation effectuée.');
+      if (selected) await loadPhotos(selected.teamId, true);
     } catch (e) { alert('Échec du reset (token ?)'); }
   };
 
   React.useEffect(()=>{ loadLeaders() }, [])
-  React.useEffect(()=>{ 
-    if(selected) loadPhotos(true) 
-  }, [selected])
 
   const saveToken = () => {
     localStorage.setItem('admin_token', token.trim())
     setError('')
     loadLeaders()
-    if (selected) loadPhotos(true)
   }
 
   const byStation = photos.reduce((acc,p)=>{
@@ -88,7 +97,6 @@ export default function Admin() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6 grid md:grid-cols-5 gap-4">
-        {/* CORRIGÉ : md:col-span-2 au lieu de md-col-span-2 */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Classement</CardTitle>
@@ -100,7 +108,7 @@ export default function Admin() {
               {teams.map(t => (
                 <div key={t.teamId}
                      className={`p-3 rounded-xl border cursor-pointer ${selected?.teamId === t.teamId ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}
-                     onClick={() => setSelected(t)}>
+                     onClick={() => handleSelectTeam(t)}>
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{t.rank ? `#${t.rank}` : ''} {t.teamId}</div>
                     <Badge>{t.stations?.length || 0} / 21</Badge>
@@ -112,7 +120,6 @@ export default function Admin() {
                 </div>
               ))}
             </div>
-            {/* CORRIGÉ : Le bloc de réinitialisation était manquant */}
             <div className="mt-4 flex items-center gap-2">
               <select className="border rounded-lg px-2 py-1" value={resetScope} onChange={(e) => setResetScope(e.target.value)}>
                 <option value="teams">Réinitialiser équipes (KV)</option>
@@ -126,7 +133,6 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        {/* CORRIGÉ : md:col-span-3 au lieu de md-col-span-3 */}
         <Card className="md:col-span-3">
           <CardHeader>
             <CardTitle>Photos — {selected?.teamId || 'Aucune équipe sélectionnée'}</CardTitle>
@@ -168,7 +174,7 @@ export default function Admin() {
             ))}
             {selected && (
               <div className="flex items-center justify-center">
-                <Button onClick={()=>loadPhotos(false)} disabled={!cursor || loading}>
+                <Button onClick={()=>loadPhotos(selected.teamId, false)} disabled={!cursor || loading}>
                   {loading ? 'Chargement…' : (cursor ? 'Charger plus' : 'Tout chargé')}
                 </Button>
               </div>
