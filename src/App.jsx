@@ -14,27 +14,25 @@ import Admin from './Admin.jsx'
 
 // --- DÉMO DES 21 STATIONS (à adapter) ---
 const STATIONS = [
-  { id: 'S01', name: 'Serres du Complexe des Serres', clue: "À compléter !", code: 'UL-001', requiresPhoto: false, requiresMeasurement: false, image: '/indices/serres.jpg' },
-  { id: 'S02', name: 'PEPS - La Caverne', clue: "À compléter !", code: 'UL-002', requiresPhoto: false, requiresMeasurement: false, image: '/indices/la_caverne.jpg' },
-  { id: 'S03', name: 'Stade Telus (PEPS)', clue: "À compléter !", code: 'UL-003', requiresPhoto: false, requiresMeasurement: false, image: '/indices/stade_interieur.jpg' },
-  { id: 'S04', name: 'Pavillon Desjardins - Agora', clue: "À compléter !", code: 'UL-004', requiresPhoto: false, requiresMeasurement: false, image: '/indices/tracteur_desjardins.jpg' },
-  { id: 'S05', name: 'Tunnel de Physique', clue: "À compléter !", code: 'UL-005', requiresMeasurement: false, requiresMeasurement: false, image: '/indices/fresque_physique.jpg' },
-  { id: 'S06', name: 'Pavillon Abitibi-Price - Globe Terrestre', clue: "À compléter !", code: 'UL-006', requiresPhoto: false, requiresMeasurement: false, image: '/indices/globe_abitibi.jpg' },
-  { id: 'S07', name: 'Bibliothèque Jean-Charles-Bonenfant', clue: "À compléter !", code: 'UL-007', requiresPhoto: false, requiresMeasurement: false, image: '/indices/bibliotheque_bonenfant.jpg' },
-  { id: 'S08', name: 'Boisé', clue: "À compléter !", code: 'UL-008', requiresPhoto: false, requiresMeasurement: true, image: '/indices/boise.jpg' },
-  { id: 'S09', name: 'Pavillon Vachon - ADÉPUL', clue: "À compléter !", code: 'UL-009', requiresPhoto: false, requiresMeasurement: false, image: '/indices/adepul.jpg' },
-  { id: 'S10', name: 'Pavillon Pouliot - Salle de classe', clue: "À compléter !", code: 'UL-010', requiresPhoto: false, requiresMeasurement: false, image: '/indices/salle_de_classe.jpg' },
-  { id: 'S11', name: 'Cafétéria Pouliot', clue: "À compléter !", code: 'UL-011', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cafeteria_pouliot.jpg' },
-  { id: 'S12', name: 'Extérieur - Cadran Solaire', clue: "À compléter !", code: 'UL-012', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cadran_solaire.jpg' },
-  { id: 'S13', name: "Pavillon d'Optique-Photonique (COPL)", clue: "À compléter !", code: 'UL-013', requiresPhoto: false, requiresMeasurement: false, image: '/indices/corridor_copl.jpg' },
-  { id: 'S14', name: 'Pavillon Vachon - Département de Physique', clue: "À compléter !", code: 'UL-014', requiresPhoto: false, requiresMeasurement: false, image: '/indices/departement_physique.jpg' },
-  { id: 'S15', name: 'Pavillon Enviro - Atrium', clue: "À compléter !", code: 'UL-015', requiresPhoto: false, requiresMeasurement: false, image: '/indices/enviro.jpg' },
-  { id: 'S16', name: 'Corridor du Pouliot/Vachon', clue: "À compléter !", code: 'UL-016', requiresPhoto: false, requiresMeasurement: false, image: '/indices/porte_cote.jpg' },
-  { id: 'S17', name: 'Babillard "Festijeu"', clue: "À compléter !", code: 'UL-017', requiresPhoto: false, requiresMeasurement: false, image: '/indices/festijeu.jpg' },
-  { id: 'S18', name: 'Tableau de classe de Physique', clue: "À compléter !", code: 'UL-018', requiresMeasurement: false, image: '/indices/tableau_nerds.jpg' },
-  { id: 'S19', name: 'Grand Axe - Fontaine', clue: "À compléter !", code: 'UL-019', requiresMeasurement: false },
-  { id: 'S20', name: "PEPS — Mur d'escalade", clue: "À compléter !", code: 'UL-020', requiresPhoto: false, requiresMeasurement: false },
-  { id: 'S21', name: 'Jardin intérieur Vachon', clue: "À compléter !", code: 'UL-021', requiresPhoto: false, requiresMeasurement: false }
+  { id: 'S01', name: 'Pavillon Vachon - Serres', clue: "À compléter !", code: 'UL-001', requiresPhoto: false, requiresMeasurement: false, image: '/indices/serres.jpg' },
+  { id: 'S02', name: 'Stade Telus (PEPS)', clue: "À compléter !", code: 'UL-003', requiresPhoto: false, requiresMeasurement: false, image: '/indices/stade_interieur.jpg' },
+  { id: 'S03', name: 'Pavillon Desjardins - Agora', clue: "À compléter !", code: 'UL-004', requiresPhoto: false, requiresMeasurement: false, image: '/indices/tracteur_desjardins.jpg' },
+  { id: 'S04', name: 'Tunnels - Jeux de la Physique', clue: "À compléter !", code: 'UL-005', requiresPhoto: false, requiresMeasurement: false, image: '/indices/jdlp.jpg' },
+  { id: 'S05', name: 'Pavillon Pouliot - Globe terrestre', clue: "À compléter !", code: 'UL-006', requiresPhoto: false, requiresMeasurement: false, image: '/indices/globe_abitibi.jpg' },
+  { id: 'S06', name: 'Bibliothèque Jean-Charles-Bonenfant', clue: "À compléter !", code: 'UL-007', requiresPhoto: false, requiresMeasurement: false, image: '/indices/bibliotheque_bonenfant.jpg' },
+  { id: 'S07', name: 'Boisé', clue: "À compléter !", code: 'UL-008', requiresPhoto: false, requiresMeasurement: false , image: '/indices/boise.jpg' },
+  { id: 'S08', name: "Pavillon Vachon - Local de l'ADÉPUL", clue: "À compléter !", code: 'UL-009', requiresPhoto: false, requiresMeasurement: false, image: '/indices/adepul.jpg' },
+  { id: 'S09', name: 'Pavillon Pouliot - Salle de classe', clue: "À compléter !", code: 'UL-010', requiresPhoto: false, requiresMeasurement: false, image: '/indices/classe_pouliot.jpg' },
+  { id: 'S10', name: 'Cafétéria Pouliot', clue: "À compléter !", code: 'UL-011', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cafeteria_pouliot.jpg' },
+  { id: 'S11', name: 'Extérieur - Cadran Solaire', clue: "À compléter !", code: 'UL-012', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cadran_solaire.jpg' },
+  { id: 'S12', name: "Pavillon d'Optique-Photonique (COPL)", clue: "À compléter !", code: 'UL-013', requiresPhoto: false, requiresMeasurement: false, image: '/indices/corridor_copl.jpg' },
+  { id: 'S13', name: 'Pavillon Vachon - Département de Physique', clue: "À compléter !Tableau de classe de Physique'", code: 'UL-014', requiresPhoto: false, requiresMeasurement: false, image: '/indices/departement_physique.jpg' },
+  { id: 'S14', name: 'Pavillon Vachon - Colosse', clue: "À compléter !", code: 'UL-015', requiresPhoto: false, requiresMeasurement: false, image: '/indices/enviro.jpg' },
+  { id: 'S15', name: 'Pavillon Vachon - Directeur de programme', clue: "À compléter !", code: 'UL-016', requiresPhoto: false, requiresMeasurement: false, image: '/indices/porte_cote.jpg' },
+  { id: 'S16', name: 'Pavillon Vachon - Babillard "Festijeu"', clue: "À compléter !", code: 'UL-017', requiresPhoto: false, requiresMeasurement: false, image: '/indices/festijeu.jpg' },
+  { id: 'S17', name: 'Pavillon Vachon - Laboratoire informatique', clue: "À compléter !", code: 'UL-018', requiresMeasurement: false, image: '/indices/tableau_nerds.jpg' },
+  { id: 'S18', name: "Pavillon Vachon - Bibliothèque scientifique", clue: "À compléter !", code: 'UL-020', requiresPhoto: false, requiresMeasurement: false, image : '/indices/bibli_vachon.jpg' },
+  { id: 'S19', name: 'Pavillon Vachon - Salle de cours', clue: "À compléter !", code: 'UL-021', requiresPhoto: false, requiresMeasurement: false, image : '/indices/salle_de_classe.jpg' }
 ];
 
 function mulberry32(a){return function(){let t=a+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296}}
