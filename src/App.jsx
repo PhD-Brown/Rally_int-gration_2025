@@ -14,25 +14,26 @@ import Admin from './Admin.jsx'
 
 // --- DÉMO DES 21 STATIONS (à adapter) ---
 const STATIONS = [
-  { id: 'S01', name: 'Pavillon Vachon - Serres', clue: "À compléter !", code: 'UL-001', requiresPhoto: false, requiresMeasurement: false, image: '/indices/serres.jpg' },
-  { id: 'S02', name: 'Stade Telus (PEPS)', clue: "À compléter !", code: 'UL-003', requiresPhoto: false, requiresMeasurement: false, image: '/indices/stade_interieur.jpg' },
-  { id: 'S03', name: 'Pavillon Desjardins - Agora', clue: "À compléter !", code: 'UL-004', requiresPhoto: false, requiresMeasurement: false, image: '/indices/tracteur_desjardins.jpg' },
-  { id: 'S04', name: 'Tunnels - Jeux de la Physique', clue: "À compléter !", code: 'UL-005', requiresPhoto: false, requiresMeasurement: false, image: '/indices/jdlp.jpg' },
-  { id: 'S05', name: 'Pavillon Pouliot - Globe terrestre', clue: "À compléter !", code: 'UL-006', requiresPhoto: false, requiresMeasurement: false, image: '/indices/globe_abitibi.jpg' },
-  { id: 'S06', name: 'Bibliothèque Jean-Charles-Bonenfant', clue: "À compléter !", code: 'UL-007', requiresPhoto: false, requiresMeasurement: false, image: '/indices/bibliotheque_bonenfant.jpg' },
-  { id: 'S07', name: 'Boisé', clue: "À compléter !", code: 'UL-008', requiresPhoto: false, requiresMeasurement: false , image: '/indices/boise.jpg' },
-  { id: 'S08', name: "Pavillon Vachon - Local de l'ADÉPUL", clue: "À compléter !", code: 'UL-009', requiresPhoto: false, requiresMeasurement: false, image: '/indices/adepul.jpg' },
-  { id: 'S09', name: 'Pavillon Pouliot - Salle de classe', clue: "À compléter !", code: 'UL-010', requiresPhoto: false, requiresMeasurement: false, image: '/indices/classe_pouliot.jpg' },
-  { id: 'S10', name: 'Cafétéria Pouliot', clue: "À compléter !", code: 'UL-011', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cafeteria_pouliot.jpg' },
-  { id: 'S11', name: 'Extérieur - Cadran Solaire', clue: "À compléter !", code: 'UL-012', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cadran_solaire.jpg' },
-  { id: 'S12', name: "Pavillon d'Optique-Photonique (COPL)", clue: "À compléter !", code: 'UL-013', requiresPhoto: false, requiresMeasurement: false, image: '/indices/corridor_copl.jpg' },
-  { id: 'S13', name: 'Pavillon Vachon - Département de Physique', clue: "À compléter !Tableau de classe de Physique'", code: 'UL-014', requiresPhoto: false, requiresMeasurement: false, image: '/indices/departement_physique.jpg' },
-  { id: 'S14', name: 'Pavillon Vachon - Colosse', clue: "À compléter !", code: 'UL-015', requiresPhoto: false, requiresMeasurement: false, image: '/indices/enviro.jpg' },
-  { id: 'S15', name: 'Pavillon Vachon - Directeur de programme', clue: "À compléter !", code: 'UL-016', requiresPhoto: false, requiresMeasurement: false, image: '/indices/porte_cote.jpg' },
-  { id: 'S16', name: 'Pavillon Vachon - Babillard "Festijeu"', clue: "À compléter !", code: 'UL-017', requiresPhoto: false, requiresMeasurement: false, image: '/indices/festijeu.jpg' },
-  { id: 'S17', name: 'Pavillon Vachon - Laboratoire informatique', clue: "À compléter !", code: 'UL-018', requiresMeasurement: false, image: '/indices/tableau_nerds.jpg' },
-  { id: 'S18', name: "Pavillon Vachon - Bibliothèque scientifique", clue: "À compléter !", code: 'UL-020', requiresPhoto: false, requiresMeasurement: false, image : '/indices/bibli_vachon.jpg' },
-  { id: 'S19', name: 'Pavillon Vachon - Salle de cours', clue: "À compléter !", code: 'UL-021', requiresPhoto: false, requiresMeasurement: false, image : '/indices/salle_de_classe.jpg' }
+  { id: 'S01', name: 'Serres', clue: "Jack et le haricot magique", code: 'LeSecretDeLaLicorne', requiresPhoto: false, requiresMeasurement: false, image: '/indices/serres.jpg' },
+  { id: 'S02', name: "Local de l'ADÉPUL", clue: "Trouvez votre local d'asso!", code: 'LaFlûteÀSixSchtroumpfs', requiresPhoto: false, requiresMeasurement: false, image: '/indices/adepul.jpg' },
+  { id: 'S03', name: 'Bureau du directeur de programme', clue: "Zoom au-delà de la longuer de Planck", code: 'SpirouÀNewYork', requiresPhoto: false, requiresMeasurement: false, image: '/indices/porte_cote.jpg' },
+  { id: 'S04', name: 'Babillard "Festijeu"', clue: "Revenez sur vos pas!", code: 'LesDaltonsSeRachètent', requiresPhoto: false, requiresMeasurement: false, image: '/indices/festijeu.jpg' },
+  { id: 'S05', name: 'Salle de cours', clue: "Autant se muscler les cuisses tout de suite", code: 'LeMarsupilami', requiresPhoto: false, requiresMeasurement: false, image : '/indices/salle_de_classe.jpg' },
+  { id: 'S06', name: "Lab d'info", clue: "[Jack et le haricot magique]^[-1]", code: 'LeTrésorDeRackhamLeRouge', requiresMeasurement: false, image: '/indices/tableau_nerds.jpg' },
+  { id: 'S07', name: "En direction du COPL", clue: "Les corridors du Vachon sont bien longs", code: 'LaSerpeDOr', requiresPhoto: false, requiresMeasurement: false, image: '/indices/corridor_copl.jpg' },
+  { id: 'S08', name: "Bibliothèque scientifique", clue: "Juste en face du département", code: 'LeCasLagaffe', requiresPhoto: false, requiresMeasurement: false, image : '/indices/bibli_vachon.jpg' },
+  { id: 'S09', name: 'Colosse', clue: "Le grand silo à grain", code: 'FélixVousOffreGénéreusementDesBeignes', requiresPhoto: false, requiresMeasurement: false, image: '/indices/enviro.jpg' },
+  { id: 'S10', name: 'Stade Telus', clue: "À portée de vue", code: 'LEvasionDesDaltons', requiresPhoto: false, requiresMeasurement: false, image: '/indices/stade_interieur.jpg' },
+  { id: 'S11', name: 'PEPS', clue: "Sans grande surprise, également à portée de vue", code: 'TintinEtLesPicaros', requiresPhoto: false, requiresMeasurement: false, image: '/indices/peps.jpg' },
+  { id: 'S12', name: 'Tunnels - Jeux de la Physique', clue: "Rendez-vous au PubU!", code: 'GareAuxGaffesDuGarsGonflé', requiresPhoto: false, requiresMeasurement: false, image: '/indices/jdlp.jpg' },
+  { id: 'S13', name: 'Agora du Desjardins', clue: "Au fin fin fond du couloir", code: 'LHéritageDeRantanplan', requiresPhoto: false, requiresMeasurement: false, image: '/indices/tracteur_desjardins.jpg' },
+  { id: 'S14', name: 'Vous savez où aller!', clue: "La porte sera barrée", code: 'AstérixChezLesBretons', requiresPhoto: false, requiresMeasurement: false, image: '/indices/bibliotheque_bonenfant.jpg' },
+  { id: 'S15', name: 'Boisé', clue: "Entouré des oiseaux et des écureuils", code: 'OkCoral', requiresPhoto: false, requiresMeasurement: false , image: '/indices/boise.jpg' },
+  { id: 'S16', name: 'Grand Axe - Cadran Solaire', clue: "Entouré de gazon et d'asphalte", code: 'AstérixEtCléopâtre', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cadran_solaire.jpg' },
+  { id: 'S17', name: 'Globe terrestre', clue: "Le pavillon machiavélique", code: 'ObjectifLune', requiresPhoto: false, requiresMeasurement: false, image: '/indices/globe_abitibi.jpg' },
+  { id: 'S18', name: 'Corridor de classe au Pouliot', clue: "À quelque part dans ce labyrinthe", code: 'LeSchtroumpfissime', requiresPhoto: false, requiresMeasurement: false, image: '/indices/classe_pouliot.jpg' },
+  { id: 'S19', name: 'Cafétéria', clue: "Sous Terre", code: 'LAffaireTournesol', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cafeteria_pouliot.jpg' },
+  { id: 'S20', name: 'Département de Physique', clue: "Juste en face de la biblio", code: 'GareAuxGaffes', requiresPhoto: false, requiresMeasurement: false, image: '/indices/departement_physique.jpg' },
 ];
 
 function mulberry32(a){return function(){let t=a+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296}}
@@ -55,7 +56,7 @@ function DebugPanel({
             <CardTitle>Panneau de Secours</CardTitle>
             <CardDescription>Forcez un état pour une équipe. Idéal pour reprendre après une erreur.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4">1
             <div className="space-y-2">
               <label className="text-sm font-medium">Noms des membres</label>
               <Input 
