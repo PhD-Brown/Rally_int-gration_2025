@@ -8,6 +8,7 @@ const CODE_MAP = STATIONS.reduce((map, station) => {
 
 console.log("STATIONS:", STATIONS);
 console.log("CODE_MAP:", CODE_MAP);
+console.log('test');
 
 export const onRequestPost = async ({ request }) => {
   try {
