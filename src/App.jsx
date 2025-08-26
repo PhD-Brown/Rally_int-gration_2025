@@ -330,8 +330,8 @@ export default function RallyeULApp() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/> Créez votre équipe</CardTitle>
-                <CardDescription>Entrez les membres, le numéro de parcours et démarrez votre aventure. L'ordre des 21 stations sera automatiquement personnalisé.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/> Rejoignez votre équipe!</CardTitle>
+                <CardDescription>Entrez le nom des membres, le numéro de parcours et démarrez votre aventure. L'ordre des 21 stations sera automatiquement personnalisé.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-5 gap-4">
