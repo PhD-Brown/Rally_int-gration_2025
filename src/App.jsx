@@ -27,7 +27,7 @@ const STATIONS = [
   { id: 'S11', name: 'PEPS', clue: "Sans grande surprise, également à portée de vue", code: 'TintinEtLesPicaros', requiresPhoto: false, requiresMeasurement: false, image: '/indices/peps.jpg' },
   { id: 'S12', name: 'Tunnels - Jeux de la Physique', clue: "Rendez-vous au PubU!", code: 'GareAuxGaffesDuGarsGonflé', requiresPhoto: false, requiresMeasurement: false, image: '/indices/jdlp.jpg' },
   { id: 'S13', name: 'Agora du Desjardins', clue: "Au fin fin fond du couloir", code: 'LHéritageDeRantanplan', requiresPhoto: false, requiresMeasurement: false, image: '/indices/tracteur_desjardins.jpg' },
-  { id: 'S14', name: 'Vous savez où aller!', clue: "La porte sera barrée", code: 'AstérixChezLesBretons', requiresPhoto: false, requiresMeasurement: false, image: '/indices/bibliotheque_bonenfant.jpg' },
+  { id: 'S14', name: 'Vous savez où aller!', clue: "La porte sera barrée", code: 'AstérixChezLesBretons', requiresPhoto: false, requiresMeasurement: false, image: '/indices/bonenfant.jpg' },
   { id: 'S15', name: 'Boisé', clue: "Entouré des oiseaux et des écureuils", code: 'OkCoral', requiresPhoto: false, requiresMeasurement: false , image: '/indices/boise.jpg' },
   { id: 'S16', name: 'Grand Axe - Cadran Solaire', clue: "Entouré de gazon et d'asphalte", code: 'AstérixEtCléopâtre', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cadran_solaire.jpg' },
   { id: 'S17', name: 'Globe terrestre', clue: "Le pavillon machiavélique", code: 'ObjectifLune', requiresPhoto: false, requiresMeasurement: false, image: '/indices/globe_abitibi.jpg' },
