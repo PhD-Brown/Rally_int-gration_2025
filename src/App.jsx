@@ -30,7 +30,7 @@ const STATIONS = [
   { id: 'S14', name: 'Vous savez où aller!', clue: "La porte sera barrée", code: 'AstérixChezLesBretons', requiresPhoto: false, requiresMeasurement: false, image: '/indices/Phi_uc_lc.svg.png' },
   { id: 'S15', name: 'Boisé', clue: "Entouré des oiseaux et des écureuils", code: 'OkCoral', requiresPhoto: false, requiresMeasurement: false , image: '/indices/boise.jpg' },
   { id: 'S16', name: 'Grand Axe - Cadran Solaire', clue: "Entouré de gazon et d'asphalte", code: 'AstérixEtCléopâtre', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cadran_solaire.jpg' },
-  { id: 'S17', name: 'Globe terrestre', clue: "Le pavillon machiavélique", code: 'ObjectifLune', requiresPhoto: false, requiresMeasurement: false, image: '/indices/globe_abitibi.jpg' },
+  { id: 'S17', name: 'Globe terrestre', clue: "Le pavillon machiavélique", code: 'ObjectifLune', requiresPhoto: false, requiresMeasurement: false, image: '/indices/globe_pouliot.jpg' },
   { id: 'S18', name: 'Corridor de classe au Pouliot', clue: "À quelque part dans ce labyrinthe", code: 'LeSchtroumpfissime', requiresPhoto: false, requiresMeasurement: false, image: '/indices/classe_pouliot.jpg' },
   { id: 'S19', name: 'Cafétéria', clue: "Sous Terre", code: 'LAffaireTournesol', requiresPhoto: false, requiresMeasurement: false, image: '/indices/cafeteria_pouliot.jpg' },
   { id: 'S20', name: 'Département de Physique', clue: "Juste en face de la biblio", code: 'GareAuxGaffes', requiresPhoto: false, requiresMeasurement: false, image: '/indices/departement_physique.jpg' },
