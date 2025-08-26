@@ -6,6 +6,9 @@ const CODE_MAP = STATIONS.reduce((map, station) => {
   return map;
 }, {});
 
+console.log("STATIONS:", STATIONS);
+console.log("CODE_MAP:", CODE_MAP);
+
 export const onRequestPost = async ({ request }) => {
   try {
     const { stationId, code } = await request.json();
