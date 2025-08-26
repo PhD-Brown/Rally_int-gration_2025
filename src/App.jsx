@@ -17,7 +17,7 @@ const STATIONS = [
   { id: 'S01', name: 'Serres', clue: "Jack et le haricot magique", code: 'LeSecretDeLaLicorne', requiresPhoto: false, requiresMeasurement: false, image: '/indices/serres.jpg' },
   { id: 'S02', name: "Local de l'ADÉPUL", clue: "Trouvez votre local d'asso!", code: 'LaFlûteÀSixSchtroumpfs', requiresPhoto: false, requiresMeasurement: false, image: '/indices/adepul.jpg' },
   { id: 'S03', name: 'Bureau du directeur de programme', clue: "Zoom au-delà de la longuer de Planck", code: 'SpirouÀNewYork', requiresPhoto: false, requiresMeasurement: false, image: '/indices/porte_cote.jpg' },
-  { id: 'S04', name: 'Babillard "Festijeu"', clue: "Revenez sur vos pas!", code: 'LesDaltonsSeRachètent', requiresPhoto: false, requiresMeasurement: false, image: '/indices/festijeu.jpg' },
+  { id: 'S04', name: 'Babillard "Festijeu"', clue: "Revenez sur vos pas!", code: 'LesDaltonsSeRachètent', requiresPhoto: false, requiresMeasurement: false, image: '/indices/affiche_festijeu.jpg' },
   { id: 'S05', name: 'Salle de cours', clue: "Autant se muscler les cuisses tout de suite", code: 'LeMarsupilami', requiresPhoto: false, requiresMeasurement: false, image : '/indices/salle_de_classe.jpg' },
   { id: 'S06', name: "Lab d'info", clue: "[Jack et le haricot magique]^[-1]", code: 'LeTrésorDeRackhamLeRouge', requiresMeasurement: false, image: '/indices/tableau_nerds.jpg' },
   { id: 'S07', name: "En direction du COPL", clue: "Les corridors du Vachon sont bien longs", code: 'LaSerpeDOr', requiresPhoto: false, requiresMeasurement: false, image: '/indices/corridor_copl.jpg' },
