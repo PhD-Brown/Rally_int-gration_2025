@@ -1,5 +1,3 @@
-import STATIONS from 'src/lib/App.jsx'
-
 // Simple table côté serveur (tu peux la déplacer plus tard en KV/D1)
 const CODE_MAP = {
 S01:'LeSecretDeLaLicorne', S02:'LaFlûteÀSixSchtroumpfs', S03:'SpirouÀNewYork', S04:'LesDaltonsSeRachètent', S05:'LeMarsupilami', 
@@ -7,10 +5,6 @@ S01:'LeSecretDeLaLicorne', S02:'LaFlûteÀSixSchtroumpfs', S03:'SpirouÀNewYork'
   S11:'TintinEtLesPicaros', S12:'GareAuxGaffesDuGarsGonflé', S13:'LHéritageDeRantanplan', S14:'AstérixChezLesBretons', S15:'OkCoral', 
   S16:'AstérixEtCléopâtre', S17:'ObjectifLune', S18:'LeSchtroumpfissime', S19:'LAffaireTournesol', S20:'GareAuxGaffes', 
   }
-
-console.log("STATIONS:", STATIONS);
-console.log("CODE_MAP:", CODE_MAP);
-console.log('test');
 
 export const onRequestPost = async ({ request }) => {
   try {
