@@ -242,7 +242,7 @@ export default function RallyeULApp() {
 
     const mentorNum = parseInt(mentorSaved, 10);
     if (!ALLOWED_MENTORS.includes(mentorNum)) {
-      alert("Le numéro du parrain doit être parmi : 5, 10, 15, 20, 25, 30.");
+      alert("Vous devez entrer correctement le nom de votre parrain/marraine");
       return;
     }
     // Exiger exactement 4 filleuls pour chaque parrain sélectionné
