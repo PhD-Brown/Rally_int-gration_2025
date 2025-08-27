@@ -331,7 +331,7 @@ export default function RallyeULApp() {
             <Card className="shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/> Rejoignez votre équipe!</CardTitle>
-                <CardDescription>Entrez le nom des membres, le numéro de parcours et démarrez votre aventure. L'ordre des 21 stations sera automatiquement personnalisé.</CardDescription>
+                <CardDescription>Entrez le nom des membres de votre équipe ainsi que de votre parrain/marraine. Vous obtiendrez votre premier indice sous peu.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-5 gap-4">
@@ -352,11 +352,6 @@ export default function RallyeULApp() {
                         </Badge>
                       ))}
                     </div>
-                  </div>
-                  <div className="md:col-span-2 space-y-3">
-                    <label className="text-sm font-medium">Numéro de parcours</label>
-                    <Input type="number" min={1} max={9999} inputMode="numeric" placeholder="Ex: 12" value={routeNumber} onChange={e=>setRouteNumber(e.target.value)} />
-                    <p className="text-xs text-slate-500">Le numéro personnalise l'ordre des stations (déterministe).</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
