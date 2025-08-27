@@ -33,7 +33,7 @@ const STATIONS = [
   { id: "S01", name: "Serres", clue: "Jack et le haricot magique", code: "LeSecretDeLaLicorne", requiresPhoto: false, requiresMeasurement: false, image: "/indices/serres.jpg" },
   { id: "S02", name: "Local de l'ADÉPUL", clue: "Trouvez votre local d'asso!", code: "LaFlûteÀSixSchtroumpfs", requiresPhoto: false, requiresMeasurement: false, image: "/indices/adepul.jpg" },
   { id: "S03", name: "Bureau du directeur de programme", clue: "Zoom au-delà de la longuer de Planck", code: "SpirouÀNewYork", requiresPhoto: false, requiresMeasurement: false, image: "/indices/porte_cote.jpg" },
-  { id: "S04", name: 'Babillard "Festijeu"', clue: "Revenez sur vos pas!", code: "LesDaltonsSeRachètent", requiresPhoto: false, requiresMeasurement: false, image: "/indices/Phi_uc_lc.svg.png" },
+  { id: "S04", name: 'Babillard "Festijeu"', clue: "Revenez sur vos pas!", code: "LesDaltonsSeRachètent", requiresPhoto: false, requiresMeasurement: false, image: "/indices/affiche_festijeux.jpg" },
   { id: "S05", name: "Salle de cours", clue: "Autant se muscler les cuisses tout de suite", code: "LeMarsupilami", requiresPhoto: false, requiresMeasurement: false, image: "/indices/salle_de_classe.jpg" },
   { id: "S06", name: "Lab d'info", clue: "[Jack et le haricot magique]^[-1]", code: "LeTrésorDeRackhamLeRouge", requiresMeasurement: false, image: "/indices/tableau_nerds.jpg" },
   { id: "S07", name: "En direction du COPL", clue: "Les corridors du Vachon sont bien longs", code: "LaSerpeDOr", requiresPhoto: false, requiresMeasurement: false, image: "/indices/corridor_copl.jpg" },
@@ -43,10 +43,10 @@ const STATIONS = [
   { id: "S11", name: "PEPS", clue: "Sans grande surprise, également à portée de vue", code: "TintinEtLesPicaros", requiresPhoto: false, requiresMeasurement: false, image: "/indices/peps.jpg" },
   { id: "S12", name: "Tunnels - Jeux de la Physique", clue: "Rendez-vous au PubU!", code: "GareAuxGaffesDuGarsGonflé", requiresPhoto: false, requiresMeasurement: false, image: "/indices/jdlp.jpg" },
   { id: "S13", name: "Agora du Desjardins", clue: "Au fin fin fond du couloir", code: "LHéritageDeRantanplan", requiresPhoto: false, requiresMeasurement: false, image: "/indices/tracteur_desjardins.jpg" },
-  { id: "S14", name: "Vous savez où aller!", clue: "La porte sera barrée", code: "AstérixChezLesBretons", requiresPhoto: false, requiresMeasurement: false, image: "/indices/Phi_uc_lc.svg.png" },
+  { id: "S14", name: "Vous savez où aller!", clue: "La porte sera barrée", code: "AstérixChezLesBretons", requiresPhoto: false, requiresMeasurement: false, image: "/indices/devant_bonenfant.jpg" },
   { id: "S15", name: "Boisé", clue: "Entouré des oiseaux et des écureuils", code: "OkCoral", requiresPhoto: false, requiresMeasurement: false, image: "/indices/boise.jpg" },
   { id: "S16", name: "Grand Axe - Cadran Solaire", clue: "Entouré de gazon et d'asphalte", code: "AstérixEtCléopâtre", requiresPhoto: false, requiresMeasurement: false, image: "/indices/cadran_solaire.jpg" },
-  { id: "S17", name: "Globe terrestre", clue: "Le pavillon machiavélique", code: "ObjectifLune", requiresPhoto: false, requiresMeasurement: false, image: "/indices/phy_uc_lc.svg.jpg" },
+  { id: "S17", name: "Globe terrestre", clue: "Le pavillon machiavélique", code: "ObjectifLune", requiresPhoto: false, requiresMeasurement: false, image: "/indices/globe_pouliot.jpg" },
   { id: "S18", name: "Corridor de classe au Pouliot", clue: "À quelque part dans ce labyrinthe", code: "LeSchtroumpfissime", requiresPhoto: false, requiresMeasurement: false, image: "/indices/classe_pouliot.jpg" },
   { id: "S19", name: "Cafétéria", clue: "Sous Terre", code: "LAffaireTournesol", requiresPhoto: false, requiresMeasurement: false, image: "/indices/cafeteria_pouliot.jpg" },
   { id: "S20", name: "Département de Physique", clue: "Juste en face de la biblio", code: "GareAuxGaffes", requiresPhoto: false, requiresMeasurement: false, image: "/indices/departement_physique.jpg" },
@@ -71,6 +71,8 @@ function seededShuffle(arr, seed) {
 }
 
 const STORAGE_KEY = "ul_rally_state_v1";
+const ALLOWED_MENTORS = [5, 10, 15, 20, 25, 30];
+const REQUIRED_FILLEULS_PER_MENTOR = 4;
 
 // ---------- Panneau de débogage ----------
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
@@ -128,18 +130,18 @@ export default function RallyeULApp() {
 
   const [team, setTeam] = useState([]);
   const [memberName, setMemberName] = useState("");
-  const [routeNumber, setRouteNumber] = useState(""); // conservé pour le seed
+  const [routeNumber, setRouteNumber] = useState(""); // conservé pour le seed, pas obligatoire
   const [startedAt, setStartedAt] = useState(null);
   const [seconds, setSeconds] = useState(0);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [codeInput, setCodeInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
-  const [measurements, setMeasurements] = useState({});
   const [showTestMode, setShowTestMode] = useState(false);
 
-  // parrain/marraine — un seul
+  // parrain/marraine — un seul (numérique attendu)
   const [mentor, setMentor] = useState("");
   const [mentorSaved, setMentorSaved] = useState("");
+
   const addMentor = () => {
     const name = mentor.trim();
     if (!name) return;
@@ -158,7 +160,6 @@ export default function RallyeULApp() {
         setRouteNumber(s.routeNumber || "");
         setStartedAt(s.startedAt || null);
         setCurrentIdx(s.currentIdx || 0);
-        setMeasurements(s.measurements || {});
       } catch {}
     }
     const m = localStorage.getItem("mentor");
@@ -166,9 +167,9 @@ export default function RallyeULApp() {
   }, []);
 
   useEffect(() => {
-    const state = { team, routeNumber, startedAt, currentIdx, measurements };
+    const state = { team, routeNumber, startedAt, currentIdx };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [team, routeNumber, startedAt, currentIdx, measurements]);
+  }, [team, routeNumber, startedAt, currentIdx]);
 
   useEffect(() => {
     if (!startedAt) return;
@@ -211,27 +212,18 @@ export default function RallyeULApp() {
       // 1) Valider le code
       await validateCode(currentStation.id, codeInput);
 
-      // 2) Sauvegarder les mesures (notes et photos supprimées)
+      // 2) Sauvegarder (plus de photos/notes/mesures)
       const teamId = team.join("-") || "anon";
-      const measurement = (measurements[currentStation.id] ?? "").toString().slice(0, 120);
-      await pushProgress(teamId, currentStation.id, seconds, { measurement });
+      await pushProgress(teamId, currentStation.id, seconds, {});
 
-      // 3) Si la station exige une mesure, la vérifier
-      if (currentStation.requiresMeasurement) {
-        const val = (measurements[currentStation.id] ?? "").toString().trim();
-        if (!val) {
-          alert("Code correct ! Il manque la mesure pour déverrouiller la suite.");
-          return;
-        }
-      }
-
-      // 4) Déverrouiller
+      // 3) Déverrouiller
       setUnlocked(true);
     } catch (e) {
       alert("Code invalide. Réessayez.");
     }
   };
 
+  // ---- Règles au démarrage ----
   const startRun = async () => {
     if (routeNumber === "9999") {
       setDebugTeam(team.join(", "));
@@ -243,17 +235,43 @@ export default function RallyeULApp() {
       alert("Ajoutez au moins un membre.");
       return;
     }
+    if (!mentorSaved.trim()) {
+      alert("Ajoutez un parrain/marraine avant de commencer.");
+      return;
+    }
+
+    const mentorNum = parseInt(mentorSaved, 10);
+    if (!ALLOWED_MENTORS.includes(mentorNum)) {
+      alert("Le numéro du parrain doit être parmi : 5, 10, 15, 20, 25, 30.");
+      return;
+    }
+    // Exiger exactement 4 filleuls pour chaque parrain sélectionné
+    if (team.length !== REQUIRED_FILLEULS_PER_MENTOR) {
+      const start = mentorNum - 4;
+      const end = mentorNum - 1;
+      alert(
+        `Pour le parrain ${mentorNum}, vous devez entrer exactement ${REQUIRED_FILLEULS_PER_MENTOR} filleuls (ex.: #${start} à #${end}). ` +
+        `Membres actuels: ${team.length}.`
+      );
+      return;
+    }
+
+    // démarrer
     setStartedAt(Date.now());
     setCurrentIdx(0);
     setUnlocked(false);
     setCodeInput("");
+
+    // enregistrer l’équipe (best-effort)
     try {
       const teamId = team.join("-") || "anon";
       await registerTeam(teamId);
     } catch (e) {
       console.warn("registerTeam failed", e);
     }
-    if (mentorSaved) localStorage.setItem("mentor", mentorSaved);
+
+    // persister le parrain
+    localStorage.setItem("mentor", mentorSaved.trim());
   };
 
   const goNext = () => {
@@ -277,7 +295,6 @@ export default function RallyeULApp() {
     setCurrentIdx(0);
     setCodeInput("");
     setUnlocked(false);
-    setMeasurements({});
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("mentor");
     setMentor("");
@@ -301,7 +318,9 @@ export default function RallyeULApp() {
             </div>
             <div>
               <div className="text-lg font-semibold">Rallye sur le campus</div>
-              <div className="text-xs text-slate-500">Rallye d'intégrations en physique — Université Laval</div>
+              <div className="text-xs text-slate-500">
+                Rallye d'intégrations en physique — Université Laval
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -328,7 +347,7 @@ export default function RallyeULApp() {
                   <Users className="h-5 w-5" /> Rejoignez votre équipe!
                 </CardTitle>
                 <CardDescription>
-                  Entrez le nom des membres de votre équipe ainsi que de votre parrain/marraine. Vous obtiendrez votre premier indice sous peu.
+                  Entrez les membres (4 requis) et le numéro de votre parrain (5, 10, 15, 20, 25 ou 30). Vous obtiendrez votre premier indice sous peu.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -352,7 +371,11 @@ export default function RallyeULApp() {
                         <span className="text-xs text-slate-500">Aucun membre pour l'instant.</span>
                       )}
                       {team.map((name) => (
-                        <Badge key={name} variant="secondary" className="px-2 py-1 text-sm flex items-center gap-2">
+                        <Badge
+                          key={name}
+                          variant="secondary"
+                          className="px-2 py-1 text-sm flex items-center gap-2"
+                        >
                           {name}
                           <button
                             aria-label={`Retirer ${name}`}
@@ -364,15 +387,18 @@ export default function RallyeULApp() {
                         </Badge>
                       ))}
                     </div>
+                    <p className="text-xs text-slate-500">Rappel : {REQUIRED_FILLEULS_PER_MENTOR} membres requis par parrain.</p>
                   </div>
 
-                  {/* Parrain/Marraine (un seul) */}
+                  {/* Parrain/Marraine (numéro attendu) */}
                   <div className="md:col-span-3 space-y-3">
-                    <label className="text-sm font-medium">Nom de votre parrain/marraine</label>
+                    <label className="text-sm font-medium">Numéro de votre parrain</label>
                     <div className="flex items-center gap-2">
                       <Input
                         type="text"
-                        placeholder="Ex: Jérémie Hatier"
+                        inputMode="numeric"
+                        pattern="\d*"
+                        placeholder="Ex: 5 ou 10 ou 15..."
                         value={mentor}
                         onChange={(e) => setMentor(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && addMentor()}
@@ -389,9 +415,13 @@ export default function RallyeULApp() {
                     </div>
                     <div className="pt-1">
                       {mentorSaved ? (
-                        <Badge variant="secondary" className="px-2 py-1 text-sm">{mentorSaved}</Badge>
+                        <Badge variant="secondary" className="px-2 py-1 text-sm">
+                          Parrain : {mentorSaved}
+                        </Badge>
                       ) : (
-                        <span className="text-xs text-slate-500">Optionnel — laissez vide s’il n’y en a pas.</span>
+                        <span className="text-xs text-slate-500">
+                          Doit être l’un de : 5, 10, 15, 20, 25, 30.
+                        </span>
                       )}
                     </div>
                   </div>
@@ -421,7 +451,9 @@ export default function RallyeULApp() {
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <MapPin className="h-4 w-4" />
                 <span>Étape {currentIdx + 1} / {STATIONS.length}</span>
-                <div className="w-24"><Progress value={(currentIdx / STATIONS.length) * 100} /></div>
+                <div className="w-24">
+                  <Progress value={(currentIdx / STATIONS.length) * 100} />
+                </div>
               </div>
             </div>
 
@@ -437,7 +469,9 @@ export default function RallyeULApp() {
                   <div><span className="font-medium">Durée:</span> {timeFmt(seconds)}</div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={resetAll} variant="secondary" className="gap-2"><RotateCcw className="h-4 w-4"/> Recommencer</Button>
+                  <Button onClick={resetAll} variant="secondary" className="gap-2">
+                    <RotateCcw className="h-4 w-4" /> Recommencer
+                  </Button>
                 </CardFooter>
               </Card>
             ) : (
@@ -449,11 +483,15 @@ export default function RallyeULApp() {
                         <MapPin className="h-5 w-5" />
                         {currentStation.name}
                       </CardTitle>
-                      <CardDescription>Indice #{currentIdx + 1} — suivez les consignes ci-dessous.</CardDescription>
+                      <CardDescription>
+                        Indice #{currentIdx + 1} — suivez les consignes ci-dessous.
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
-                        <p className="leading-relaxed"><span className="font-semibold">Indice:</span> {currentStation.clue}</p>
+                        <p className="leading-relaxed">
+                          <span className="font-semibold">Indice:</span> {currentStation.clue}
+                        </p>
                       </div>
 
                       {currentStation.image && (
@@ -465,21 +503,6 @@ export default function RallyeULApp() {
                           />
                         </div>
                       )}
-
-                      {/* Mesure seulement (notes et photos supprimées) */}
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium">
-                          Mesure (si demandé) {currentStation.requiresMeasurement && <Badge className="ml-2" variant="secondary">Obligatoire</Badge>}
-                        </label>
-                        <Input
-                          type="text"
-                          placeholder="Ex: 14,2 s  |  200 m  |  12 marches"
-                          value={measurements[currentStation.id] ?? ""}
-                          onChange={(e) =>
-                            setMeasurements((m) => ({ ...m, [currentStation.id]: e.target.value }))
-                          }
-                        />
-                      </div>
                     </CardContent>
                   </Card>
 
@@ -493,7 +516,9 @@ export default function RallyeULApp() {
                           </Badge>
                         )}
                       </CardTitle>
-                      <CardDescription>Saisissez le code affiché à cette station pour déverrouiller la suivante.</CardDescription>
+                      <CardDescription>
+                        Saisissez le code affiché à cette station pour déverrouiller la suivante.
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <Input
@@ -520,7 +545,9 @@ export default function RallyeULApp() {
                     </CardContent>
                     <CardFooter className="justify-between">
                       <div className="text-xs text-slate-500">Parcours #{routeNumber}</div>
-                      <div className="text-xs text-slate-500">Progression: {currentIdx}/{STATIONS.length}</div>
+                      <div className="text-xs text-slate-500">
+                        Progression: {currentIdx}/{STATIONS.length}
+                      </div>
                     </CardFooter>
                   </Card>
                 </div>
