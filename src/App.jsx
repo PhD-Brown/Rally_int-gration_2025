@@ -119,6 +119,8 @@ export default function RallyeULApp() {
   const [measurements, setMeasurements] = useState({})
   const [notes, setNotes] = useState({})
   const [showTestMode, setShowTestMode] = useState(false)
+  const [mentor, setMentor] = useState("");
+
 
   React.useEffect(()=>{
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -353,7 +355,16 @@ export default function RallyeULApp() {
                       ))}
                     </div>
                   </div>
-                </div>
+                    <div className="md:col-span-3 space-y-3">
+                      <label className="text-sm font-medium">Nom de votre parrain/marraine</label>
+                      <Input
+                        type="text"
+                        placeholder="Ex: Marie Tremblay"
+                        value={mentor}
+                        onChange={(e) => setMentor(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 text-sm">
                     <span className="text-slate-600">Mode TEST (organisateur)</span>
