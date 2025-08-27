@@ -111,21 +111,18 @@ export default function RallyeULApp() {
   const [measurements, setMeasurements] = useState({})
   const [notes, setNotes] = useState({})
   const [showTestMode, setShowTestMode] = useState(false)
-  const [mentors, setMentors] = useState([]);
-
+  const [mentor, setMentor] = useState("");
+  const [mentorSaved, setMentorSaved] = useState("");
+  
   const addMentor = () => {
-    const name = mentor.trim();           // mentor est déjà ton input
+    const name = mentor.trim();
     if (!name) return;
-    if (mentors.includes(name)) return;   // évite doublons
-  // optionnel: limiter à 2 (parrain + marraine)
-  // if (mentors.length >= 2) return;
-
-    setMentors(prev => [...prev, name]);
-    setMentor("");                         // vide l’input
+    setMentorSaved(name);   // on fige le nom choisi
+    setMentor("");          // on vide l’input
   };
+  
+  const clearMentor = () => setMentorSaved("");
 
-  const removeMentor = (name) =>
-    setMentors(prev => prev.filter(n => n !== name));
 
 
   React.useEffect(()=>{
