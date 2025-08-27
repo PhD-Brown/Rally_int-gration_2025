@@ -235,55 +235,66 @@ export default function RallyeULApp() {
     }
   };
 
-  const validateAndUnlock = async () => {
-        if (!currentStation) return;
+const validateAndUnlock = async () => {
+  if (!currentStation) return;
 
-        try {
-          // 1. On valide le code en premier.
-          await validateCode(currentStation.id, codeInput);
+  try {
+    // 1) Valider le code
+    await validateCode(currentStation.id, codeInput);
 
-          // 2. Le code est bon ! On sauvegarde TOUJOURS les textes à ce stade.
-          const teamId = team.join('-') || 'anon';
-          const measurement = (measurements[currentStation.id] ?? '').toString().slice(0, 120);
-          const notesText   = (notes[currentStation.id] ?? '').toString().slice(0, 2000);
+    // 2) Sauvegarder les textes
+    const teamId = team.join('-') || 'anon';
+    const measurement = (measurements[currentStation.id] ?? '').toString().slice(0, 120);
+    const notesText   = (notes[currentStation.id] ?? '').toString().slice(0, 2000);
+    await pushProgress(teamId, currentStation.id, seconds, { measurement, notes: notesText });
 
-          await pushProgress(teamId, currentStation.id, seconds, {
-            measurement,
-            notes: notesText,
-          });
+    // 3) Vérifier conditions éventuelles
+    if (currentStation.requiresPhoto) {
+      const hasPhoto = (photos[currentStation.id] || []).length > 0;
+      if (!hasPhoto) { alert('Code correct ! Texte sauvegardé. Il manque une photo.'); return; }
+    }
+    if (currentStation.requiresMeasurement) {
+      const val = (measurements[currentStation.id] ?? '').toString().trim();
+      if (!val) { alert('Code correct ! Texte sauvegardé. Il manque la mesure.'); return; }
+    }
 
-          // 3. On vérifie maintenant si on peut DÉVERROUILLER.
-          if (currentStation.requiresPhoto) {
-            const hasPhoto = (photos[currentStation.id] || []).length > 0;
-            if (!hasPhoto) {
-              alert('Code correct ! Le texte a été sauvegardé. Il manque une photo pour déverrouiller la suite.');
-              return; 
-            }
-          }
-          if (currentStation.requiresMeasurement) {
-            const val = (measurements[currentStation.id] ?? '').toString().trim();
-            if (!val) {
-              alert('Code correct ! Le texte a été sauvegardé. Il manque la mesure pour déverrouiller la suite.');
-              return;
-            }
-          }
+    // 4) Déverrouiller
+    setUnlocked(true);
+  } catch (e) {
+    alert('Code invalide. Réessayez.');
+  }
+};
 
-          // 4. Tout est bon, on déverrouille.
-          setUnlocked(true);
+const startRun = async () => {
+  // secret "debug panel"
+  if (routeNumber === '9999') {
+    setDebugTeam(team.join(', '));
+    setDebugRoute('');
+    setDebugStationIdx('0');
+    setShowDebug(true);
+    return;
+  }
 
-        } catch (e) {
-  const startRun = async () => {
-      // On vérifie le code secret EN PREMIER
-      if (routeNumber === '9999') {
-        setDebugTeam(team.join(', '));
-        setDebugRoute('');
-        setDebugStationIdx('0');
-        setShowDebug(true);
-        return;
-      }
-          alert('Code invalide. Réessayez.');
-        }
-      };
+  if (team.length === 0) { alert('Ajoutez au moins un membre.'); return; }
+  // NOTE: on ne force plus l'entrée du numéro de parcours
+
+  // démarrer
+  setStartedAt(Date.now());
+  setCurrentIdx(0);
+  setUnlocked(false);
+  setCodeInput('');
+
+  // enregistrer l’équipe (best-effort)
+  try {
+    const teamId = team.join('-') || 'anon';
+    await registerTeam(teamId);
+  } catch (e) {
+    console.warn('registerTeam failed', e);
+  }
+
+  // (optionnel) persister le parrain/marraine confirmé
+  if (mentorSaved) localStorage.setItem('mentor', mentorSaved);
+};
       
   const goNext = ()=>{
     if(currentIdx + 1 < STATIONS.length){
