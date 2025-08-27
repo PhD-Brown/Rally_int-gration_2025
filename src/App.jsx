@@ -67,14 +67,6 @@ function DebugPanel({
               <p className="text-xs text-slate-500">Séparez les noms par une virgule.</p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Numéro de parcours</label>
-              <Input 
-                placeholder="Ex: 12" 
-                value={route} 
-                onChange={e => onRouteChange(e.target.value)} 
-              />
-            </div>
-            <div className="space-y-2">
               <label className="text-sm font-medium">Repartir à l'indice</label>
               <select 
                 value={stationIdx} 
@@ -187,16 +179,6 @@ export default function RallyeULApp() {
     // Cacher le panneau
     setShowDebug(false);
   };
-
-  const startRun = async () => {
-      // On vérifie le code secret EN PREMIER
-      if (routeNumber === '9999') {
-        setDebugTeam(team.join(', '));
-        setDebugRoute('');
-        setDebugStationIdx('0');
-        setShowDebug(true);
-        return;
-      }
       
       // Ensuite, on fait les validations normales
       if (team.length === 0) return alert('Ajoutez au moins un membre.');
@@ -279,6 +261,15 @@ export default function RallyeULApp() {
           setUnlocked(true);
 
         } catch (e) {
+  const startRun = async () => {
+      // On vérifie le code secret EN PREMIER
+      if (routeNumber === '9999') {
+        setDebugTeam(team.join(', '));
+        setDebugRoute('');
+        setDebugStationIdx('0');
+        setShowDebug(true);
+        return;
+      }
           alert('Code invalide. Réessayez.');
         }
       };
@@ -308,8 +299,8 @@ export default function RallyeULApp() {
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-emerald-600/90 grid place-items-center text-white font-bold">UL</div>
             <div>
-              <div className="text-lg font-semibold">Rallye UL</div>
-              <div className="text-xs text-slate-500">Parcours interactif — Université Laval</div>
+              <div className="text-lg font-semibold">Rallye sur le campus</div>
+              <div className="text-xs text-slate-500">Rallye d'intégrations en physique — Université Laval</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -340,7 +331,7 @@ export default function RallyeULApp() {
                   <div className="md:col-span-3 space-y-3">
                     <label className="text-sm font-medium">Membres de l'équipe</label>
                     <div className="flex items-center gap-2">
-                      <Input placeholder="Ajouter un prénom (ex: Alex)" value={memberName} onChange={e=>setMemberName(e.target.value)} onKeyDown={e=> e.key==='Enter' && addMember()} />
+                      <Input placeholder="Ajouter un prénom (ex: Alex Baker)" value={memberName} onChange={e=>setMemberName(e.target.value)} onKeyDown={e=> e.key==='Enter' && addMember()} />
                       <Button onClick={addMember} className="gap-2"><Plus className="h-4 w-4"/> Ajouter</Button>
                     </div>
                     <div className="flex flex-wrap gap-2 pt-1">
@@ -357,12 +348,8 @@ export default function RallyeULApp() {
                   </div>
                     <div className="md:col-span-3 space-y-3">
                       <label className="text-sm font-medium">Nom de votre parrain/marraine</label>
-                      <Input
-                        type="text"
-                        placeholder="Ex: Marie Tremblay"
-                        value={mentor}
-                        onChange={(e) => setMentor(e.target.value)}
-                      />
+                      <Input type="text" placeholder="Ex: Jérémie Hatier" value={mentor} onChange={(e) => setMentor(e.target.value)} />
+                      <Button onClick={addMember} className="gap-2"><Plus className="h-4 w-4"/> Ajouter</Button>
                     </div>
                   </div>
                 <div className="flex items-center justify-between">
