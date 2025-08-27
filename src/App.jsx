@@ -111,7 +111,21 @@ export default function RallyeULApp() {
   const [measurements, setMeasurements] = useState({})
   const [notes, setNotes] = useState({})
   const [showTestMode, setShowTestMode] = useState(false)
-  const [mentor, setMentor] = useState("");
+  const [mentors, setMentors] = useState([]);
+
+  const addMentor = () => {
+    const name = mentor.trim();           // mentor est déjà ton input
+    if (!name) return;
+    if (mentors.includes(name)) return;   // évite doublons
+  // optionnel: limiter à 2 (parrain + marraine)
+  // if (mentors.length >= 2) return;
+
+    setMentors(prev => [...prev, name]);
+    setMentor("");                         // vide l’input
+  };
+
+  const removeMentor = (name) =>
+    setMentors(prev => prev.filter(n => n !== name));
 
 
   React.useEffect(()=>{
@@ -346,11 +360,37 @@ export default function RallyeULApp() {
                       ))}
                     </div>
                   </div>
-                    <div className="md:col-span-3 space-y-3">
-                      <label className="text-sm font-medium">Nom de votre parrain/marraine</label>
-                      <Input type="text" placeholder="Ex: Jérémie Hatier" value={mentor} onChange={(e) => setMentor(e.target.value)} />
-                      <Button onClick={addMember} className="gap-2"><Plus className="h-4 w-4"/> Ajouter</Button>
+                  <div className="md:col-span-3 space-y-3">
+                    <label className="text-sm font-medium">Nom de votre parrain/marraine</label>
+                    
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        type="text" 
+                        placeholder="Ex: Jérémie Hatier" 
+                        value={mentor} onChange={(e) => setMentor(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addMentor()} 
+                        disabled={!!mentorSaved}
+                        />
+                      <Button onClick={addMentor} className="gap-2" disabled={!!mentorSaved}>
+                        <Plus className="h-4 w-4" /> Ajouter
+                      </Button>
+
+                      {mentorSaved && (
+                        <Button variant="outline" onClick={clearMentor} className="gap-2">
+                          <Trash2 className="h-4 w-4" /> Retirer
+                        </Button>
+                      )}
                     </div>
+
+                    <div className="pt-1">
+                      {mentorSaved ? (
+                        <Badge variant="secondary" className="px-2 py-1 text-sm">{mentorSaved}</Badge>
+                      ) : (
+                        <span className="text-xs text-slate-500">Optionnel — laissez vide s’il n’y en a pas.</span>
+                      )}
+                    </div>
+                  </div>
+
                   </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 text-sm">
