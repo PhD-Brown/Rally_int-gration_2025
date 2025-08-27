@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+  import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -28,7 +28,9 @@ import {
 import { validateCode, registerTeam, pushProgress } from "@/lib/api";
 import Admin from "./Admin.jsx";
 
-// --- DÉMO DES 21 STATIONS (à adapter) ---
+/* ======================
+   STATIONS (ordre fixe)
+   ====================== */
 const STATIONS = [
   { id: "S01", name: "Serres", clue: "Jack et le haricot magique", code: "LeSecretDeLaLicorne", requiresPhoto: false, requiresMeasurement: false, image: "/indices/serres.jpg" },
   { id: "S02", name: "Local de l'ADÉPUL", clue: "Trouvez votre local d'asso!", code: "LaFlûteÀSixSchtroumpfs", requiresPhoto: false, requiresMeasurement: false, image: "/indices/adepul.jpg" },
@@ -52,29 +54,27 @@ const STATIONS = [
   { id: "S20", name: "Département de Physique", clue: "Juste en face de la biblio", code: "GareAuxGaffes", requiresPhoto: false, requiresMeasurement: false, image: "/indices/departement_physique.jpg" },
 ];
 
-function mulberry32(a) {
-  return function () {
-    let t = (a += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function seededShuffle(arr, seed) {
-  const rng = mulberry32(seed || 1);
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+/* =============================
+   Dictionnaire Parrain → Filleuls
+   (édite avec tes vrais noms)
+   ============================= */
+const PAIRINGS = {
+  // EXEMPLES (remplace !) :
+  "Marie Tremblay": ["Alice Martin", "Bob Lavoie", "Chloé Gagnon", "David Fortin"],
+  "Jérémie Hatier": ["Élodie Côté", "Félix Dubé", "Inès Roy", "Liam Bouchard"],
+};
+
+// Normalisation légère pour comparer proprement (sans casse/accents/espaces)
+const normalizeName = (s) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 
 const STORAGE_KEY = "ul_rally_state_v1";
-const ALLOWED_MENTORS = [5, 10, 15, 20, 25, 30];
-const REQUIRED_FILLEULS_PER_MENTOR = 4;
 
-// ---------- Panneau de débogage ----------
+/* ---------- Panneau de débogage ---------- */
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
@@ -120,17 +120,18 @@ function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onAppl
 }
 
 export default function RallyeULApp() {
+  // route /admin
   if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) {
     return <Admin />;
   }
 
+  // état global
   const [showDebug, setShowDebug] = useState(false);
   const [debugTeam, setDebugTeam] = useState("");
   const [debugStationIdx, setDebugStationIdx] = useState("0");
 
   const [team, setTeam] = useState([]);
   const [memberName, setMemberName] = useState("");
-  const [routeNumber, setRouteNumber] = useState(""); // conservé pour le seed, pas obligatoire
   const [startedAt, setStartedAt] = useState(null);
   const [seconds, setSeconds] = useState(0);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -138,7 +139,7 @@ export default function RallyeULApp() {
   const [unlocked, setUnlocked] = useState(false);
   const [showTestMode, setShowTestMode] = useState(false);
 
-  // parrain/marraine — un seul (numérique attendu)
+  // parrain/marraine — un seul
   const [mentor, setMentor] = useState("");
   const [mentorSaved, setMentorSaved] = useState("");
 
@@ -157,7 +158,6 @@ export default function RallyeULApp() {
       try {
         const s = JSON.parse(raw);
         setTeam(s.team || []);
-        setRouteNumber(s.routeNumber || "");
         setStartedAt(s.startedAt || null);
         setCurrentIdx(s.currentIdx || 0);
       } catch {}
@@ -167,9 +167,9 @@ export default function RallyeULApp() {
   }, []);
 
   useEffect(() => {
-    const state = { team, routeNumber, startedAt, currentIdx };
+    const state = { team, startedAt, currentIdx };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [team, routeNumber, startedAt, currentIdx]);
+  }, [team, startedAt, currentIdx]);
 
   useEffect(() => {
     if (!startedAt) return;
@@ -177,12 +177,8 @@ export default function RallyeULApp() {
     return () => clearInterval(id);
   }, [startedAt]);
 
-  const order = useMemo(() => {
-    const seed = parseInt(routeNumber || "1", 10) || 1;
-    return seededShuffle(STATIONS, seed);
-  }, [routeNumber]);
-
-  const currentStation = order[currentIdx];
+  // ordre FIXE
+  const currentStation = STATIONS[currentIdx];
   const progressPct = Math.round((currentIdx / STATIONS.length) * 100);
 
   const addMember = () => {
@@ -208,29 +204,28 @@ export default function RallyeULApp() {
 
   const validateAndUnlock = async () => {
     if (!currentStation) return;
+
     try {
-      // 1) Valider le code
       await validateCode(currentStation.id, codeInput);
 
-      // 2) Sauvegarder (plus de photos/notes/mesures)
+      // Sauvegarde minimale (plus de photos/notes/mesures)
       const teamId = team.join("-") || "anon";
       await pushProgress(teamId, currentStation.id, seconds, {});
 
-      // 3) Déverrouiller
       setUnlocked(true);
     } catch (e) {
       alert("Code invalide. Réessayez.");
     }
   };
 
-  // ---- Règles au démarrage ----
+  // Recherche du parrain (normalisée)
+  const findMentorKey = (name) => {
+    const target = normalizeName(name);
+    return Object.keys(PAIRINGS).find((k) => normalizeName(k) === target) || null;
+  };
+
+  // ---- Règles au démarrage (parrain + 4 filleuls exacts) ----
   const startRun = async () => {
-    if (routeNumber === "9999") {
-      setDebugTeam(team.join(", "));
-      setDebugStationIdx("0");
-      setShowDebug(true);
-      return;
-    }
     if (team.length === 0) {
       alert("Ajoutez au moins un membre.");
       return;
@@ -240,29 +235,45 @@ export default function RallyeULApp() {
       return;
     }
 
-    const mentorNum = parseInt(mentorSaved, 10);
-    if (!ALLOWED_MENTORS.includes(mentorNum)) {
-      alert("Vous devez entrer correctement le nom de votre parrain/marraine");
-      return;
-    }
-    // Exiger exactement 4 filleuls pour chaque parrain sélectionné
-    if (team.length !== REQUIRED_FILLEULS_PER_MENTOR) {
-      const start = mentorNum - 4;
-      const end = mentorNum - 1;
+    const mentorKey = findMentorKey(mentorSaved);
+    if (!mentorKey) {
+      const available = Object.keys(PAIRINGS).join(", ");
       alert(
-        `Pour le parrain ${mentorNum}, vous devez entrer exactement ${REQUIRED_FILLEULS_PER_MENTOR} filleuls (ex.: #${start} à #${end}). ` +
-        `Membres actuels: ${team.length}.`
+        `Parrain inconnu: "${mentorSaved}".\nParrains disponibles: ${available || "aucun défini dans PAIRINGS"}`
       );
       return;
     }
 
-    // démarrer
+    const expected = PAIRINGS[mentorKey] || [];
+    const expectedNormSet = new Set(expected.map(normalizeName));
+    const teamNormSet = new Set(team.map(normalizeName));
+
+    if (teamNormSet.size !== expectedNormSet.size) {
+      alert(
+        `Le parrain "${mentorKey}" attend exactement ${expected.length} filleuls: ${expected.join(
+          ", "
+        )}.\nMembres saisis: ${team.join(", ")}`
+      );
+      return;
+    }
+
+    const missing = expected.filter((x) => !teamNormSet.has(normalizeName(x)));
+    const extras = team.filter((x) => !expectedNormSet.has(normalizeName(x)));
+
+    if (missing.length || extras.length) {
+      let msg = `L'équipe ne correspond pas aux filleuls attendus pour "${mentorKey}".`;
+      if (missing.length) msg += `\nManquants: ${missing.join(", ")}`;
+      if (extras.length) msg += `\nNon attendus: ${extras.join(", ")}`;
+      alert(msg);
+      return;
+    }
+
+    // OK : démarrer
     setStartedAt(Date.now());
     setCurrentIdx(0);
     setUnlocked(false);
     setCodeInput("");
 
-    // enregistrer l’équipe (best-effort)
     try {
       const teamId = team.join("-") || "anon";
       await registerTeam(teamId);
@@ -270,8 +281,7 @@ export default function RallyeULApp() {
       console.warn("registerTeam failed", e);
     }
 
-    // persister le parrain
-    localStorage.setItem("mentor", mentorSaved.trim());
+    localStorage.setItem("mentor", mentorKey); // on persiste le parrain tel que présent dans la table
   };
 
   const goNext = () => {
@@ -289,7 +299,6 @@ export default function RallyeULApp() {
     if (!confirm("Réinitialiser complètement le parcours?")) return;
     setTeam([]);
     setMemberName("");
-    setRouteNumber("");
     setStartedAt(null);
     setSeconds(0);
     setCurrentIdx(0);
@@ -347,7 +356,7 @@ export default function RallyeULApp() {
                   <Users className="h-5 w-5" /> Rejoignez votre équipe!
                 </CardTitle>
                 <CardDescription>
-                  Entrez les membres (4 requis) et le numéro de votre parrain (5, 10, 15, 20, 25 ou 30). Vous obtiendrez votre premier indice sous peu.
+                  Entrez le parrain/marraine et les 4 filleuls qui lui sont associés (selon la table d’association).
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -387,18 +396,18 @@ export default function RallyeULApp() {
                         </Badge>
                       ))}
                     </div>
-                    <p className="text-xs text-slate-500">.</p>
+                    <p className="text-xs text-slate-500">
+                      Rappel : l’équipe doit correspondre exactement aux 4 filleuls du parrain choisi.
+                    </p>
                   </div>
 
-                  {/* Parrain/Marraine (numéro attendu) */}
+                  {/* Parrain/Marraine (un seul) */}
                   <div className="md:col-span-3 space-y-3">
-                    <label className="text-sm font-medium">Numéro de votre parrain</label>
+                    <label className="text-sm font-medium">Nom de votre parrain/marraine</label>
                     <div className="flex items-center gap-2">
                       <Input
                         type="text"
-                        inputMode="numeric"
-                        pattern="\d*"
-                        placeholder="Ex: 5 ou 10 ou 15..."
+                        placeholder="Ex: Marie Tremblay"
                         value={mentor}
                         onChange={(e) => setMentor(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && addMentor()}
@@ -420,6 +429,7 @@ export default function RallyeULApp() {
                         </Badge>
                       ) : (
                         <span className="text-xs text-slate-500">
+                          Le nom doit exister dans la table d’association (voir code).
                         </span>
                       )}
                     </div>
@@ -439,7 +449,7 @@ export default function RallyeULApp() {
             </Card>
           </motion.div>
         ) : (
-          // ÉCRAN DE PARCOURS
+          // ÉCRAN DE PARCOURS (ordre fixe)
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -464,7 +474,6 @@ export default function RallyeULApp() {
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-slate-700">
                   <div><span className="font-medium">Équipe:</span> {team.join(", ")}</div>
-                  <div><span className="font-medium">Parcours:</span> {routeNumber}</div>
                   <div><span className="font-medium">Durée:</span> {timeFmt(seconds)}</div>
                 </CardContent>
                 <CardFooter>
@@ -543,7 +552,6 @@ export default function RallyeULApp() {
                       )}
                     </CardContent>
                     <CardFooter className="justify-between">
-                      <div className="text-xs text-slate-500">Parcours #{routeNumber}</div>
                       <div className="text-xs text-slate-500">
                         Progression: {currentIdx}/{STATIONS.length}
                       </div>
