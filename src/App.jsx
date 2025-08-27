@@ -387,7 +387,7 @@ export default function RallyeULApp() {
                         </Badge>
                       ))}
                     </div>
-                    <p className="text-xs text-slate-500">Rappel : {REQUIRED_FILLEULS_PER_MENTOR} membres requis par parrain.</p>
+                    <p className="text-xs text-slate-500">.</p>
                   </div>
 
                   {/* Parrain/Marraine (numéro attendu) */}
@@ -420,7 +420,6 @@ export default function RallyeULApp() {
                         </Badge>
                       ) : (
                         <span className="text-xs text-slate-500">
-                          Doit être l’un de : 5, 10, 15, 20, 25, 30.
                         </span>
                       )}
                     </div>
