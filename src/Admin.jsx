@@ -109,7 +109,7 @@ export default function Admin() {
                      onClick={() => handleSelectTeam(t)}>
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{t.rank ? `#${t.rank}` : ''} {t.teamId}</div>
-                    <Badge>{t.stations?.length || 0} / 21</Badge>
+                    <Badge>{t.stations?.length || 0} / 20</Badge>
                   </div>
                   <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
                     <span>Temps: {fmtTime(t.seconds || 0)}</span>
