@@ -73,7 +73,13 @@ const PAIRINGS = {
   // Ajoute d'autres parrains au besoin…
 };
 
-// ---- Helpers ----
+/* ===========================
+   Points de départ “x”
+   (indices 0-based dans STATIONS)
+   =========================== */
+const START_INDICES = [1, 4, 14, 11, 14, 19]; // S02, S05, S15 (remplace/complète selon tes “x”)
+
+/* ------------ Helpers ------------ */
 const normalizeName = (s) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
@@ -154,20 +160,14 @@ export default function RallyeULApp() {
   const [mentorName, setMentorName] = useState("");
   const [mentors, setMentors] = useState([]);
 
-  // --- LIGHTBOX (aperçu et zoom d'image d'indice) ---
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  // Lightbox (zoom sur l’image d’indice)
   const [lightboxSrc, setLightboxSrc] = useState(null);
-  const [zoom, setZoom] = useState(1);
-  const openLightbox = (src) => { setLightboxSrc(src); setZoom(1); setLightboxOpen(true); };
-  const closeLightbox = () => setLightboxOpen(false);
-  const zoomIn  = () => setZoom((z) => Math.min(5, +(z + 0.25).toFixed(2)));
-  const zoomOut = () => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)));
-  const resetZoom = () => setZoom(1);
-  const onWheelZoom = (e) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.1 : -0.1;
-    setZoom((z) => Math.min(5, Math.max(1, +(z + delta).toFixed(2))));
-  };
+
+  // Compteur persistant pour distribuer les départs sur les “x”
+  const [startCounter, setStartCounter] = useState(() => {
+    const saved = localStorage.getItem("rally_nextStartCounter");
+    return saved ? parseInt(saved, 10) : 0;
+  });
 
   const addMentor = () => {
     const name = mentorName.trim();
@@ -259,7 +259,7 @@ export default function RallyeULApp() {
     return found;
   };
 
-  // ---- Validation au démarrage ----
+  // ---- Validation au démarrage + départ sur “x” ----
   const startRun = async () => {
     if (team.length === 0) {
       alert("Il manque des membres d'équipe.");
@@ -301,9 +301,23 @@ export default function RallyeULApp() {
       return;
     }
 
+    // Départ calé sur le prochain “x”
+    const startIndex =
+      START_INDICES.length > 0
+        ? START_INDICES[startCounter % START_INDICES.length]
+        : 0;
+
+    setCurrentIdx(startIndex);
+
+    // Incrémenter le compteur pour la prochaine équipe
+    setStartCounter((c) => {
+      const next = c + 1;
+      localStorage.setItem("rally_nextStartCounter", String(next));
+      return next;
+    });
+
     // OK : démarrer
     setStartedAt(Date.now());
-    setCurrentIdx(0);
     setUnlocked(false);
     setCodeInput("");
 
@@ -335,6 +349,8 @@ export default function RallyeULApp() {
     setCurrentIdx(0);
     setCodeInput("");
     setUnlocked(false);
+    setMentors([]);
+    setMentorName("");
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -344,6 +360,13 @@ export default function RallyeULApp() {
     const ss = Math.floor(s % 60).toString().padStart(2, "0");
     return hh === "00" ? `${mm}:${ss}` : `${hh}:${mm}:${ss}`;
   };
+
+  // Fermer la lightbox avec Échap
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && setLightboxSrc(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
@@ -479,6 +502,25 @@ export default function RallyeULApp() {
               </CardContent>
             </Card>
           </motion.div>
+        ) : currentIdx >= STATIONS.length ? (
+          // Page finale (après la 20e station)
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Parcours terminé 🎉</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-slate-700 space-y-2">
+              <div><span className="font-medium">Équipe :</span> {team.join(", ")}</div>
+              <div><span className="font-medium">Durée :</span> {timeFmt(seconds)}</div>
+              <p className="mt-2">
+                Merci d’avoir participé ! Rendez-vous à la <strong>cafétéria du pavillon Vachon</strong>.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={resetAll} variant="secondary" className="gap-2">
+                <RotateCcw className="h-4 w-4" /> Recommencer
+              </Button>
+            </CardFooter>
+          </Card>
         ) : (
           // ÉCRAN DE PARCOURS (ordre fixe)
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -497,103 +539,81 @@ export default function RallyeULApp() {
               </div>
             </div>
 
-            {currentIdx >= STATIONS.length ? (
-              <Card className="shadow-sm">
+            <div className="grid md:grid-cols-5 gap-4">
+              <Card className="md:col-span-3 shadow-sm">
                 <CardHeader>
-                  <CardTitle>Parcours terminé 🎉</CardTitle>
-                  <CardDescription>Bravo! Montrez cet écran à un organisateur.</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    {currentStation.name}
+                  </CardTitle>
+                  <CardDescription>
+                    Indice #{currentIdx + 1} — suivez les consignes ci-dessous.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm text-slate-700">
-                  <div><span className="font-medium">Équipe:</span> {team.join(", ")}</div>
-                  <div><span className="font-medium">Durée:</span> {timeFmt(seconds)}</div>
+                <CardContent className="space-y-4">
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
+                    <p className="leading-relaxed">
+                      <span className="font-semibold">Indice:</span> {currentStation.clue}
+                    </p>
+                  </div>
+
+                  {currentStation.image && (
+                    <div className="mt-4">
+                      <img
+                        src={currentStation.image}
+                        alt="Image d'indice"
+                        className="rounded-xl w-full border cursor-zoom-in"
+                        onClick={() => setLightboxSrc(currentStation.image)}
+                      />
+                    </div>
+                  )}
                 </CardContent>
-                <CardFooter>
-                  <Button onClick={resetAll} variant="secondary" className="gap-2">
-                    <RotateCcw className="h-4 w-4" /> Recommencer
-                  </Button>
+              </Card>
+
+              <Card className="md:col-span-2 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Validation du code{" "}
+                    {showTestMode && (
+                      <Badge variant="secondary" className="ml-2">
+                        Attendu: {currentStation.code}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Saisissez le code affiché à cette station pour déverrouiller la suivante.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Input
+                    placeholder="Entrez le code ici"
+                    value={codeInput}
+                    onChange={(e) => setCodeInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && validateAndUnlock()}
+                    autoFocus
+                  />
+                  {!unlocked ? (
+                    <Button className="w-full gap-2" onClick={validateAndUnlock}>
+                      <Lock className="h-4 w-4" /> Valider le code
+                    </Button>
+                  ) : (
+                    <Button className="w-full gap-2" onClick={goNext}>
+                      <Unlock className="h-4 w-4" /> Déverrouillé — étape suivante
+                    </Button>
+                  )}
+                  {unlocked && (
+                    <div className="flex items-center gap-2 text-emerald-700 text-sm">
+                      <CheckCircle2 className="h-4 w-4" /> Code exact! Vous pouvez passer à la prochaine étape.
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="justify-between">
+                  <div className="text-xs text-slate-500">
+                    Progression: {currentIdx}/{STATIONS.length}
+                  </div>
                 </CardFooter>
               </Card>
-            ) : (
-              currentStation && (
-                <div className="grid md:grid-cols-5 gap-4">
-                  <Card className="md:col-span-3 shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <MapPin className="h-5 w-5" />
-                        {currentStation.name}
-                      </CardTitle>
-                      <CardDescription>
-                        Indice #{currentIdx + 1} — suivez les consignes ci-dessous.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
-                        <p className="leading-relaxed">
-                          <span className="font-semibold">Indice:</span> {currentStation.clue}
-                        </p>
-                      </div>
-
-                      {currentStation.image && (
-                        <div className="mt-4">
-                          {/* Image non restreinte + ouverture lightbox au clic */}
-                          <img
-                            src={currentStation.image}
-                            alt="Image d'indice"
-                            className="rounded-xl w-full object-contain border cursor-zoom-in"
-                            onClick={() => openLightbox(currentStation.image)}
-                          />
-                          <div className="text-xs text-slate-500 mt-1">Cliquez pour agrandir</div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card className="md:col-span-2 shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        Validation du code{" "}
-                        {showTestMode && (
-                          <Badge variant="secondary" className="ml-2">
-                            Attendu: {currentStation.code}
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription>
-                        Saisissez le code affiché à cette station pour déverrouiller la suivante.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <Input
-                        placeholder="Entrez le code ici"
-                        value={codeInput}
-                        onChange={(e) => setCodeInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && validateAndUnlock()}
-                        autoFocus
-                      />
-                      {!unlocked ? (
-                        <Button className="w-full gap-2" onClick={validateAndUnlock}>
-                          <Lock className="h-4 w-4" /> Valider le code
-                        </Button>
-                      ) : (
-                        <Button className="w-full gap-2" onClick={goNext}>
-                          <Unlock className="h-4 w-4" /> Déverrouillé — étape suivante
-                        </Button>
-                      )}
-                      {unlocked && (
-                        <div className="flex items-center gap-2 text-emerald-700 text-sm">
-                          <CheckCircle2 className="h-4 w-4" /> Code exact! Vous pouvez passer à la prochaine étape.
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter className="justify-between">
-                      <div className="text-xs text-slate-500">
-                        Progression: {currentIdx}/{STATIONS.length}
-                      </div>
-                    </CardFooter>
-                  </Card>
-                </div>
-              )
-            )}
+            </div>
           </motion.div>
         )}
 
@@ -610,36 +630,17 @@ export default function RallyeULApp() {
           />
         )}
 
-        {/* --- LIGHTBOX OVERLAY : zoom + molette + boutons --- */}
-        {lightboxOpen && (
+        {/* Lightbox plein écran pour zoomer l’image d’indice */}
+        {lightboxSrc && (
           <div
-            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex flex-col"
-            onClick={closeLightbox}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setLightboxSrc(null)}
           >
-            <div className="flex items-center justify-between p-3 text-white">
-              <div className="font-medium">Aperçu de l’indice</div>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); zoomOut();}}>-</Button>
-                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); resetZoom();}}>100%</Button>
-                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); zoomIn();}}>+</Button>
-                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); closeLightbox();}}>Fermer</Button>
-              </div>
-            </div>
-            <div
-              className="flex-1 overflow-auto"
-              onClick={(e)=>e.stopPropagation()}
-              onWheel={onWheelZoom}
-            >
-              <div className="min-h-full min-w-full flex items-center justify-center p-6">
-                <img
-                  src={lightboxSrc || ""}
-                  alt="Agrandissement"
-                  className="select-none"
-                  style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
-                  draggable={false}
-                />
-              </div>
-            </div>
+            <img
+              src={lightboxSrc}
+              alt="Agrandissement"
+              className="max-w-[95vw] max-h-[95vh] rounded-xl"
+            />
           </div>
         )}
       </main>
