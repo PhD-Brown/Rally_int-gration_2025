@@ -414,7 +414,7 @@ export default function RallyeULApp() {
 
                   {/* Parrains/marraines (exactement 2 noms) */}
                   <div className="md:col-span-3 space-y-3">
-                    <label className="text-sm font-medium">Parrains/marraines (2 noms requis)</label>
+                    <label className="text-sm font-medium">Parrains/marraines </label>
                     <div className="flex items-center gap-2">
                       <Input
                         type="text"
@@ -440,7 +440,7 @@ export default function RallyeULApp() {
                         </Badge>
                       ) : (
                         <span className="text-xs text-slate-500">
-                          Entrez exactement 2 noms.
+                          Aucun parrain/marraine pour l'instant.
                         </span>
                       )}
                     </div>
