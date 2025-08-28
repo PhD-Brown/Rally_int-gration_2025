@@ -1,0 +1,18 @@
+name = "rally-start"
+main = "workers/rally-start/src/index.js"
+compatibility_date = "2025-08-28"
+workers_dev = true
+
+# Durable Object pour sérialiser l'allocation (1er X, 2e X, ...).
+[durable_objects]
+bindings = [
+  { name = "ALLOCATOR", class_name = "StartAllocator" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["StartAllocator"]
+
+# Indices "X" (0-index). Modifie selon ta carte si besoin.
+[vars]
+START_INDICES = "[1,4,8,11, 14, 18]"

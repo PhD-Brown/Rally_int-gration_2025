@@ -1,0 +1,21 @@
+name = "rallye-start"
+main = "src/worker.js"
+compatibility_date = "2025-08-01"
+
+[durable_objects]
+bindings = [
+  { name = "START_ALLOCATOR", class_name = "StartAllocator" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["StartAllocator"]
+
+[vars]
+# liste des positions 0-based où se trouvent tes "x"
+START_INDICES = "1,6,15"
+
+# Token pour l'endpoint /admin/reset (ne mets pas de secret ici en prod;
+# tu peux aussi faire `wrangler secret put ADMIN_TOKEN`)
+ADMIN_TOKEN = "change-me"
+
