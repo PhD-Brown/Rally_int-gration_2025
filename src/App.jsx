@@ -2,14 +2,28 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import {
-  Plus, Trash2, Users, MapPin, Lock, Unlock, CheckCircle2, Clock, ChevronRight, RotateCcw,
+  Plus,
+  Trash2,
+  Users,
+  MapPin,
+  Lock,
+  Unlock,
+  CheckCircle2,
+  Clock,
+  ChevronRight,
+  RotateCcw,
 } from "lucide-react";
 import { validateCode, registerTeam, pushProgress } from "@/lib/api";
 import Admin from "./Admin.jsx";
@@ -63,82 +77,13 @@ const PAIRINGS = {
 const normalizeName = (s) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
+const parseLegacyMentors = (raw) =>
+  raw
+    .split(/(?:,|&|\+|\/| et )/i)
+    .map((x) => x.trim())
+    .filter(Boolean);
+
 const STORAGE_KEY = "ul_rally_state_v1";
-const START_CACHE_KEY = "ul_rally_start_assignments"; // teamKey -> index
-const CF_URL =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_CF_WORKER_URL) ||
-  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_CF_WORKER_URL) ||
-  "";
-
-/** Transforme une liste de noms saisis en clés **exactes** du dictionnaire PAIRINGS */
-function resolveMentorKeys(list) {
-  if (!Array.isArray(list) || list.length !== 2) return null;
-  const keys = Object.keys(PAIRINGS);
-  const found = list.map((n) =>
-    keys.find((k) => normalizeName(k) === normalizeName(n))
-  );
-  if (found.some((x) => !x)) return null;
-  if (new Set(found).size !== 2) return null;
-  return found;
-}
-
-/** Construit une clé d'équipe stable pour l’allocation Cloudflare */
-function makeTeamKey(members, mentorKeys) {
-  const m = [...members].map(normalizeName).sort();
-  const mk = [...mentorKeys].map(normalizeName).sort();
-  return `team:${mk.join("+")}::${m.join(",")}`;
-}
-
-/** Récupère (ou mémorise) l’index de départ via le Worker Cloudflare */
-async function getStartIndexForTeam(teamKey) {
-  // 1) Cache local pour éviter de reclamer après refresh
-  try {
-    const raw = localStorage.getItem(START_CACHE_KEY);
-    if (raw) {
-      const map = JSON.parse(raw);
-      if (map && typeof map[teamKey] === "number") return map[teamKey];
-    }
-  } catch {}
-
-  // 2) Appel Worker (idempotent d’abord, sinon fallback)
-  let idx = 0;
-  if (CF_URL) {
-    try {
-      // a) Essai mode idempotent (POST /nextStart {teamKey})
-      const r1 = await fetch(`${CF_URL}/nextStart`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ teamKey }),
-      });
-      if (r1.ok) {
-        const j = await r1.json();
-        if (typeof j.index === "number") idx = j.index;
-      } else {
-        // b) Fallback mode simple (GET /claim?count=N)
-        const r2 = await fetch(`${CF_URL}/claim?count=${STATIONS.length}`);
-        if (r2.ok) {
-          const j2 = await r2.json();
-          if (typeof j2.index === "number") idx = j2.index;
-          else if (typeof j2.startIndex === "number") idx = j2.startIndex;
-        }
-      }
-    } catch (e) {
-      console.warn("[start] worker unreachable, defaulting to 0", e);
-    }
-  } else {
-    console.warn("[start] Aucune URL de Worker détectée (VITE_CF_WORKER_URL / NEXT_PUBLIC_CF_WORKER_URL)");
-  }
-
-  // 3) Cache local
-  try {
-    const raw = localStorage.getItem(START_CACHE_KEY);
-    const map = raw ? JSON.parse(raw) : {};
-    map[teamKey] = idx;
-    localStorage.setItem(START_CACHE_KEY, JSON.stringify(map));
-  } catch {}
-
-  return idx;
-}
 
 /* ---------- Panneau de débogage ---------- */
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
@@ -229,6 +174,13 @@ export default function RallyeULApp() {
         setMentors(s.mentors || []);
       } catch {}
     }
+    // migration éventuelle de l’ancienne clé "mentor"
+    const legacy = localStorage.getItem("mentor");
+    if (legacy) {
+      const parsed = parseLegacyMentors(legacy).slice(0, 2);
+      if (parsed.length) setMentors((m) => (m.length ? m : parsed));
+      localStorage.removeItem("mentor");
+    }
   }, []);
 
   useEffect(() => {
@@ -280,7 +232,19 @@ export default function RallyeULApp() {
     }
   };
 
-  // ---- Validation au démarrage + allocation de l’indice de départ via Worker ----
+  // Conversion des 2 noms saisis → clés exactes de PAIRINGS
+  const findMentorKeys = (list) => {
+    if (!Array.isArray(list) || list.length !== 2) return null;
+    const keys = Object.keys(PAIRINGS);
+    const found = list.map((n) =>
+      keys.find((k) => normalizeName(k) === normalizeName(n))
+    );
+    if (found.some((x) => !x)) return null;
+    if (new Set(found).size !== 2) return null;
+    return found;
+  };
+
+  // ---- Validation au démarrage ----
   const startRun = async () => {
     if (team.length === 0) {
       alert("Il manque des membres d'équipe.");
@@ -291,10 +255,11 @@ export default function RallyeULApp() {
       return;
     }
 
-    // Conversion des 2 noms saisis → clés exactes de PAIRINGS
-    const mentorKeys = resolveMentorKeys(mentors);
+    const mentorKeys = findMentorKeys(mentors);
     if (!mentorKeys) {
-      alert("Certains des noms de parrains/marraines sont incorrects. Réessayez; si l’erreur persiste, appelez Alex ou Jérémie.");
+      alert(
+        "Certains des noms de parrains/marraines sont incorrects. Réessayez; si l’erreur persiste, appelez Alex ou Jérémie."
+      );
       return;
     }
 
@@ -321,20 +286,9 @@ export default function RallyeULApp() {
       return;
     }
 
-    // --- Allocation de l’indice de départ (premier X, 2e X, ...) ---
-    // teamKey = dépend de l'équipe + parrains pour rester stable entre appareils
-    const teamKey = makeTeamKey(team, mentorKeys);
-
-    let startIndex = 0;
-    try {
-      startIndex = await getStartIndexForTeam(teamKey);
-    } catch (e) {
-      console.warn("[start] getStartIndexForTeam failed, defaulting to 0", e);
-      startIndex = 0;
-    }
-
+    // OK : démarrer
     setStartedAt(Date.now());
-    setCurrentIdx(startIndex);
+    setCurrentIdx(0);
     setUnlocked(false);
     setCodeInput("");
 
@@ -346,17 +300,17 @@ export default function RallyeULApp() {
     }
   };
 
+  // ✅ Correction : après la dernière station, on force l’affichage de la page finale
   const goNext = () => {
     if (currentIdx + 1 < STATIONS.length) {
       setCurrentIdx((i) => i + 1);
       setUnlocked(false);
       setCodeInput("");
     } else {
-      // Fin du 20e indice : message sobre pour se rendre à la cafétéria du pavillon Vachon
+      // On passe à "après la dernière" pour déclencher l’écran de fin
+      setCurrentIdx(STATIONS.length);
       setUnlocked(false);
       setCodeInput("");
-      setCurrentIdx(STATIONS.length); // force l’écran de fin
-      alert("Bravo! Rendez-vous à la cafétéria du pavillon Vachon.");
     }
   };
 
@@ -370,7 +324,6 @@ export default function RallyeULApp() {
     setCodeInput("");
     setUnlocked(false);
     localStorage.removeItem(STORAGE_KEY);
-    // on ne supprime pas START_CACHE_KEY pour préserver l’allocation si rafraîchissement
   };
 
   const timeFmt = (s) => {
@@ -380,15 +333,49 @@ export default function RallyeULApp() {
     return hh === "00" ? `${mm}:${ss}` : `${hh}:${mm}:${ss}`;
   };
 
+  // --------- Page Finale (nouvelle) ----------
+  const FinalPage = () => (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+      <section className="min-h-[60vh] grid place-items-center">
+        <div className="text-center space-y-6">
+          <div className="text-4xl md:text-5xl font-bold tracking-tight">
+            🎉 Félicitations! 🎉
+          </div>
+          <p className="text-slate-700 text-base md:text-lg">
+            Vous avez complété le rallye. <br />
+            <span className="font-medium">Rendez-vous maintenant au pavillon Vachon (cafétéria)</span> pour la suite des activités.
+          </p>
+          <p className="text-slate-700 text-base md:text-lg">
+            Profitez du temps restant pour <span className="font-medium">compléter le Bingo</span> d’intégration!
+          </p>
+          <div className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-slate-800 bg-white shadow-sm">
+            <Clock className="h-4 w-4" />
+            <span className="text-sm">Temps total :</span>
+            <span className="font-semibold">{timeFmt(seconds)}</span>
+          </div>
+          <div className="pt-4">
+            <Button onClick={resetAll} variant="secondary" className="gap-2">
+              <RotateCcw className="h-4 w-4" /> Recommencer
+            </Button>
+          </div>
+        </div>
+      </section>
+    </motion.div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
       <header className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-emerald-600/90 grid place-items-center text-white font-bold">UL</div>
+            <div className="h-9 w-9 rounded-xl bg-emerald-600/90 grid place-items-center text-white font-bold">
+              UL
+            </div>
             <div>
               <div className="text-lg font-semibold">Rallye sur le campus</div>
-              <div className="text-xs text-slate-500">Rallye d'intégrations en physique — Université Laval</div>
+              <div className="text-xs text-slate-500">
+                Rallye d'intégrations en physique — Université Laval
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -440,7 +427,11 @@ export default function RallyeULApp() {
                         <span className="text-xs text-slate-500">Aucun membre pour l'instant.</span>
                       )}
                       {team.map((name) => (
-                        <Badge key={name} variant="secondary" className="px-2 py-1 text-sm flex items-center gap-2">
+                        <Badge
+                          key={name}
+                          variant="secondary"
+                          className="px-2 py-1 text-sm flex items-center gap-2"
+                        >
                           {name}
                           <button
                             aria-label={`Retirer ${name}`}
@@ -475,7 +466,11 @@ export default function RallyeULApp() {
                         <span className="text-xs text-slate-500">Aucun parrain/marraine pour l'instant.</span>
                       )}
                       {mentors.map((name) => (
-                        <Badge key={name} variant="secondary" className="px-2 py-1 text-sm flex items-center gap-2">
+                        <Badge
+                          key={name}
+                          variant="secondary"
+                          className="px-2 py-1 text-sm flex items-center gap-2"
+                        >
                           {name}
                           <button
                             aria-label={`Retirer ${name}`}
@@ -503,41 +498,27 @@ export default function RallyeULApp() {
             </Card>
           </motion.div>
         ) : (
-          // ÉCRAN DE PARCOURS (ordre fixe)
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Users className="h-4 w-4" />
-                <span className="font-medium">Équipe:</span>
-                <span>{team.join(", ")}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <MapPin className="h-4 w-4" />
-                <span>Étape {currentIdx + 1} / {STATIONS.length}</span>
-                <div className="w-24">
-                  <Progress value={progressPct} />
+          // ÉCRAN DE PARCOURS (ordre fixe) OU ÉCRAN FINAL
+          currentIdx >= STATIONS.length ? (
+            <FinalPage />
+          ) : (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Users className="h-4 w-4" />
+                  <span className="font-medium">Équipe:</span>
+                  <span>{team.join(", ")}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <MapPin className="h-4 w-4" />
+                  <span>Étape {currentIdx + 1} / {STATIONS.length}</span>
+                  <div className="w-24">
+                    <Progress value={progressPct} />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {currentIdx >= STATIONS.length ? (
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle>Parcours terminé 🎉</CardTitle>
-                  <CardDescription>Bravo! Rendez-vous à la cafétéria du pavillon Vachon.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm text-slate-700">
-                  <div><span className="font-medium">Équipe:</span> {team.join(", ")}</div>
-                  <div><span className="font-medium">Durée:</span> {timeFmt(seconds)}</div>
-                </CardContent>
-                <CardFooter>
-                  <Button onClick={resetAll} variant="secondary" className="gap-2">
-                    <RotateCcw className="h-4 w-4" /> Recommencer
-                  </Button>
-                </CardFooter>
-              </Card>
-            ) : (
-              currentStation && (
+              {currentStation && (
                 <div className="grid md:grid-cols-5 gap-4">
                   <Card className="md:col-span-3 shadow-sm">
                     <CardHeader>
@@ -612,9 +593,9 @@ export default function RallyeULApp() {
                     </CardFooter>
                   </Card>
                 </div>
-              )
-            )}
-          </motion.div>
+              )}
+            </motion.div>
+          )
         )}
 
         <div className="pt-6 text-center text-xs text-slate-500">Baker is such a beast!!.</div>
