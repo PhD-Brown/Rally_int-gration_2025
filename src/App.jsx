@@ -59,7 +59,7 @@ const STATIONS = [
    ========================================== */
 const PAIRINGS = {
   "Clément Tremblay": ["Narayan Vigneault", "Marie Gervais", "Laurent Sirois", "Anakin Schroeder Tabah"],
-  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"],
+  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"], // Walker (corrigé)
   "Xavier Lemens": ["Alexandre Bourgeois", "Charles-Émile Roy", "Jules Hermel", "Matheus Bernardo-Cunha"],
   "Jean-Frédéric Savard": ["Nassim Naili", "Christophe Renaud-Plourde"],
   "Charles-Antoine Fournier": ["Hany Derriche", "Allyson Landry", "Charles-Étienne Hogue", "Théodore Nadeau"],
@@ -170,6 +170,9 @@ export default function RallyeULApp() {
   const [codeInput, setCodeInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [showTestMode, setShowTestMode] = useState(false);
+
+  // Lightbox image d’indice
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   // Parrains/marraines: saisie un-à-un via menu déroulant
   const [mentors, setMentors] = useState([]);
@@ -562,8 +565,11 @@ export default function RallyeULApp() {
                           <img
                             src={currentStation.image}
                             alt="Image d'indice"
-                            className="rounded-xl w-full max-h-80 object-cover border"
+                            className="rounded-xl w-full object-contain border cursor-zoom-in"
+                            onClick={() => setLightboxSrc(currentStation.image)}
+                            draggable={false}
                           />
+                          <p className="text-xs text-slate-500 mt-1">Appuyez pour agrandir</p>
                         </div>
                       )}
                     </CardContent>
@@ -629,6 +635,22 @@ export default function RallyeULApp() {
             onApply={applyDebugState}
             onClose={() => setShowDebug(false)}
           />
+        )}
+
+        {/* Lightbox plein écran pour zoom */}
+        {lightboxSrc && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+            onClick={() => setLightboxSrc(null)}
+          >
+            <img
+              src={lightboxSrc}
+              alt="Agrandissement"
+              className="max-w-[95vw] max-h-[90vh] rounded-xl shadow-2xl"
+              style={{ touchAction: "pinch-zoom" }}
+              draggable={false}
+            />
+          </div>
         )}
       </main>
     </div>
