@@ -56,7 +56,6 @@ const STATIONS = [
 
 /* ==========================================
    Dictionnaire Parrain/Marraine → Filleuls
-   (tes listes officielles)
    ========================================== */
 const PAIRINGS = {
   "Clément Tremblay": ["Narayan Vigneault", "Marie Gervais", "Laurent Sirois", "Anakin Schroeder Tabah"],
@@ -78,8 +77,7 @@ const PAIRINGS = {
 const normalizeName = (s) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
-// accepte séparateurs: virgule, &, +, slash, " et "
-const parseMentorNames = (raw) =>
+const parseLegacyMentors = (raw) =>
   raw
     .split(/(?:,|&|\+|\/| et )/i)
     .map((x) => x.trim())
@@ -97,7 +95,7 @@ function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onAppl
             <CardTitle>Panneau de Secours</CardTitle>
             <CardDescription>Forcez un état pour une équipe. Idéal pour reprendre après une erreur.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+        <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Noms des membres</label>
               <Input
@@ -152,17 +150,17 @@ export default function RallyeULApp() {
   const [unlocked, setUnlocked] = useState(false);
   const [showTestMode, setShowTestMode] = useState(false);
 
-  // deux parrains/marraines requis (saisie libre, puis "Ajouter" pour figer)
-  const [mentor, setMentor] = useState("");
-  const [mentorSaved, setMentorSaved] = useState("");
+  // Parrains/marraines: saisie un-à-un
+  const [mentorName, setMentorName] = useState("");
+  const [mentors, setMentors] = useState([]);
 
   const addMentor = () => {
-    const name = mentor.trim();
+    const name = mentorName.trim();
     if (!name) return;
-    setMentorSaved(name);
-    setMentor("");
+    setMentors((m) => Array.from(new Set([...m, name]))); // évite doublons
+    setMentorName("");
   };
-  const clearMentor = () => setMentorSaved("");
+  const removeMentor = (name) => setMentors((m) => m.filter((n) => n !== name));
 
   // chargement / persistance
   useEffect(() => {
@@ -173,16 +171,22 @@ export default function RallyeULApp() {
         setTeam(s.team || []);
         setStartedAt(s.startedAt || null);
         setCurrentIdx(s.currentIdx || 0);
+        setMentors(s.mentors || []);
       } catch {}
     }
-    const m = localStorage.getItem("mentor");
-    if (m) setMentorSaved(m);
+    // migration éventuelle de l’ancienne clé "mentor"
+    const legacy = localStorage.getItem("mentor");
+    if (legacy) {
+      const parsed = parseLegacyMentors(legacy).slice(0, 2);
+      if (parsed.length) setMentors((m) => (m.length ? m : parsed));
+      localStorage.removeItem("mentor");
+    }
   }, []);
 
   useEffect(() => {
-    const state = { team, startedAt, currentIdx };
+    const state = { team, startedAt, currentIdx, mentors };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [team, startedAt, currentIdx]);
+  }, [team, startedAt, currentIdx, mentors]);
 
   useEffect(() => {
     if (!startedAt) return;
@@ -194,6 +198,7 @@ export default function RallyeULApp() {
   const currentStation = STATIONS[currentIdx];
   const progressPct = Math.round((currentIdx / STATIONS.length) * 100);
 
+  // équipe (étudiants) — saisie un-à-un
   const addMember = () => {
     const name = memberName.trim();
     if (!name) return;
@@ -217,33 +222,25 @@ export default function RallyeULApp() {
 
   const validateAndUnlock = async () => {
     if (!currentStation) return;
-
     try {
       await validateCode(currentStation.id, codeInput);
-
-      // Sauvegarde minimale (plus de photos/notes/mesures)
       const teamId = team.join("-") || "anon";
-      await pushProgress(teamId, currentStation.id, seconds, {});
-
+      await pushProgress(teamId, currentStation.id, seconds, {}); // plus de photos/notes/mesures
       setUnlocked(true);
     } catch (e) {
       alert("Code invalide. Réessayez.");
     }
   };
 
-  // Trouve exactement 2 parrains existants
-  const findMentorKeys = (raw) => {
-    const names = parseMentorNames(raw);
-    if (names.length !== 2) return null; // on exige 2 noms saisis
+  // Conversion des 2 noms saisis → clés exactes de PAIRINGS
+  const findMentorKeys = (list) => {
+    if (!Array.isArray(list) || list.length !== 2) return null;
     const keys = Object.keys(PAIRINGS);
-    const found = [];
-    for (const n of names) {
-      const norm = normalizeName(n);
-      const k = keys.find((k) => normalizeName(k) === norm);
-      if (!k) return null; // un nom inconnu
-      found.push(k);
-    }
-    if (new Set(found).size !== 2) return null; // éviter doublons
+    const found = list.map((n) =>
+      keys.find((k) => normalizeName(k) === normalizeName(n))
+    );
+    if (found.some((x) => !x)) return null;
+    if (new Set(found).size !== 2) return null;
     return found;
   };
 
@@ -253,30 +250,28 @@ export default function RallyeULApp() {
       alert("Il manque des membres d'équipe.");
       return;
     }
-    if (!mentorSaved.trim()) {
-      alert("Veuillez entrer les 2 noms des parrains/marraines.");
+    if (mentors.length !== 2) {
+      alert("Veuillez entrer exactement 2 parrains/marraines (un à la fois).");
       return;
     }
 
-    const mentorKeys = findMentorKeys(mentorSaved);
+    const mentorKeys = findMentorKeys(mentors);
     if (!mentorKeys) {
-      const available = Object.keys(PAIRINGS).join(", ");
       alert(
-        `Parrains/marraines non reconnus ou nombre invalide.\nNoms possibles : ${available || "(à compléter dans le code)"}`
+        "Certains des noms de parrains/marraines sont incorrects. Réessayez; si l’erreur persiste, appelez Alex ou Jérémie."
       );
       return;
     }
 
-    // Ensemble des filleuls autorisés = union des deux listes
+    // Union des filleuls autorisés pour ces 2 parrains
     const allowed = mentorKeys.flatMap((k) => PAIRINGS[k] || []);
     const allowedSet = new Set(allowed.map(normalizeName));
-    const teamSet = new Set(team.map(normalizeName));
 
-    // Pas d'obligation de nombre : seulement que tous les membres soient autorisés
+    // Tous les membres saisis doivent appartenir à cette union
     const extras = team.filter((x) => !allowedSet.has(normalizeName(x)));
     if (extras.length) {
       alert(
-        `Certains noms ne correspondent pas aux filleuls de ces 2 parrains :\nNon autorisés : ${extras.join(", ")}`
+        `Certains noms ne correspondent pas aux filleuls de ces 2 parrains. Réessayez; si l’erreur persiste, appelez Alex ou Jérémie.`
       );
       return;
     }
@@ -293,8 +288,6 @@ export default function RallyeULApp() {
     } catch (e) {
       console.warn("registerTeam failed", e);
     }
-
-    localStorage.setItem("mentor", mentorSaved.trim());
   };
 
   const goNext = () => {
@@ -318,9 +311,6 @@ export default function RallyeULApp() {
     setCodeInput("");
     setUnlocked(false);
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("mentor");
-    setMentor("");
-    setMentorSaved("");
   };
 
   const timeFmt = (s) => {
@@ -351,7 +341,7 @@ export default function RallyeULApp() {
               <span>{startedAt ? timeFmt(seconds) : "00:00"}</span>
             </div>
             <div className="w-28 hidden md:block">
-              <Progress value={Math.round((currentIdx / STATIONS.length) * 100)} />
+              <Progress value={progressPct} />
             </div>
             <Button variant="secondary" onClick={resetAll} className="gap-2">
               <RotateCcw className="h-4 w-4" /> Réinitialiser
@@ -375,7 +365,7 @@ export default function RallyeULApp() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-5 gap-4">
-                  {/* Équipe */}
+                  {/* Équipe (étudiants) */}
                   <div className="md:col-span-3 space-y-3">
                     <label className="text-sm font-medium">Membres de l'équipe</label>
                     <div className="flex items-center gap-2">
@@ -412,37 +402,42 @@ export default function RallyeULApp() {
                     </div>
                   </div>
 
-                  {/* Parrains/marraines (exactement 2 noms) */}
+                  {/* Parrains/marraines (un-à-un) */}
                   <div className="md:col-span-3 space-y-3">
-                    <label className="text-sm font-medium">Parrains/marraines </label>
+                    <label className="text-sm font-medium">Parrains/marraines</label>
                     <div className="flex items-center gap-2">
                       <Input
                         type="text"
-                        placeholder="Ex: Clément Tremblay & Frédérik Strach"
-                        value={mentor}
-                        onChange={(e) => setMentor(e.target.value)}
+                        placeholder="Ex: Clément Tremblay"
+                        value={mentorName}
+                        onChange={(e) => setMentorName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && addMentor()}
-                        disabled={!!mentorSaved}
                       />
-                      <Button onClick={addMentor} className="gap-2" disabled={!!mentorSaved}>
+                      <Button onClick={addMentor} className="gap-2">
                         <Plus className="h-4 w-4" /> Ajouter
                       </Button>
-                      {mentorSaved && (
-                        <Button variant="outline" onClick={clearMentor} className="gap-2">
-                          <Trash2 className="h-4 w-4" /> Retirer
-                        </Button>
-                      )}
                     </div>
-                    <div className="pt-1">
-                      {mentorSaved ? (
-                        <Badge variant="secondary" className="px-2 py-1 text-sm">
-                          Parrains : {mentorSaved}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-slate-500">
-                          Aucun parrain/marraine pour l'instant.
-                        </span>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {mentors.length === 0 && (
+                        <span className="text-xs text-slate-500">Aucun parrain/marraine pour l'instant.</span>
                       )}
+                      {mentors.map((name) => (
+                        <Badge
+                          key={name}
+                          variant="secondary"
+                          className="px-2 py-1 text-sm flex items-center gap-2"
+                        >
+                          {name}
+                          <button
+                            aria-label={`Retirer ${name}`}
+                            onClick={() => removeMentor(name)}
+                            className="text-slate-500 hover:text-rose-600"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -472,7 +467,7 @@ export default function RallyeULApp() {
                 <MapPin className="h-4 w-4" />
                 <span>Étape {currentIdx + 1} / {STATIONS.length}</span>
                 <div className="w-24">
-                  <Progress value={Math.round((currentIdx / STATIONS.length) * 100)} />
+                  <Progress value={progressPct} />
                 </div>
               </div>
             </div>
