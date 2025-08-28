@@ -154,6 +154,21 @@ export default function RallyeULApp() {
   const [mentorName, setMentorName] = useState("");
   const [mentors, setMentors] = useState([]);
 
+  // --- LIGHTBOX (aperçu et zoom d'image d'indice) ---
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const openLightbox = (src) => { setLightboxSrc(src); setZoom(1); setLightboxOpen(true); };
+  const closeLightbox = () => setLightboxOpen(false);
+  const zoomIn  = () => setZoom((z) => Math.min(5, +(z + 0.25).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)));
+  const resetZoom = () => setZoom(1);
+  const onWheelZoom = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    setZoom((z) => Math.min(5, Math.max(1, +(z + delta).toFixed(2))));
+  };
+
   const addMentor = () => {
     const name = mentorName.trim();
     if (!name) return;
@@ -275,7 +290,7 @@ export default function RallyeULApp() {
     // 1) Refuser toute personne hors des 2 listes (message générique, pas de liste détaillée)
     const hasExtras = team.some((x) => !allowedSetNorm.has(normalizeName(x)));
     if (hasExtras) {
-      alert("Il manque des membres obligatoires pour ces parrains/marraines. Si l’erreur persiste, appelez Alex ou Jérémie.");
+      alert("Certains des membres entrés ne sont pas associés à ces parrains/marraines. Si l’erreur persiste, appelez Alex ou Jérémie.");
       return;
     }
 
@@ -520,11 +535,14 @@ export default function RallyeULApp() {
 
                       {currentStation.image && (
                         <div className="mt-4">
+                          {/* Image non restreinte + ouverture lightbox au clic */}
                           <img
                             src={currentStation.image}
                             alt="Image d'indice"
-                            className="rounded-xl w-full max-h-80 object-cover border"
+                            className="rounded-xl w-full object-contain border cursor-zoom-in"
+                            onClick={() => openLightbox(currentStation.image)}
                           />
+                          <div className="text-xs text-slate-500 mt-1">Cliquez pour agrandir</div>
                         </div>
                       )}
                     </CardContent>
@@ -590,6 +608,39 @@ export default function RallyeULApp() {
             onApply={applyDebugState}
             onClose={() => setShowDebug(false)}
           />
+        )}
+
+        {/* --- LIGHTBOX OVERLAY : zoom + molette + boutons --- */}
+        {lightboxOpen && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex flex-col"
+            onClick={closeLightbox}
+          >
+            <div className="flex items-center justify-between p-3 text-white">
+              <div className="font-medium">Aperçu de l’indice</div>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); zoomOut();}}>-</Button>
+                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); resetZoom();}}>100%</Button>
+                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); zoomIn();}}>+</Button>
+                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); closeLightbox();}}>Fermer</Button>
+              </div>
+            </div>
+            <div
+              className="flex-1 overflow-auto"
+              onClick={(e)=>e.stopPropagation()}
+              onWheel={onWheelZoom}
+            >
+              <div className="min-h-full min-w-full flex items-center justify-center p-6">
+                <img
+                  src={lightboxSrc || ""}
+                  alt="Agrandissement"
+                  className="select-none"
+                  style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
+                  draggable={false}
+                />
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>
