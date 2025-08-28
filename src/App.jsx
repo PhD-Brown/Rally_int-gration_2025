@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,10 +57,11 @@ const STATIONS = [
 
 /* ==========================================
    Dictionnaire Parrain/Marraine → Filleuls
+   (tes listes officielles)
    ========================================== */
 const PAIRINGS = {
   "Clément Tremblay": ["Narayan Vigneault", "Marie Gervais", "Laurent Sirois", "Anakin Schroeder Tabah"],
-  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"], // Walker (corrigé)
+  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"], // ← Walker (corrigé)
   "Xavier Lemens": ["Alexandre Bourgeois", "Charles-Émile Roy", "Jules Hermel", "Matheus Bernardo-Cunha"],
   "Jean-Frédéric Savard": ["Nassim Naili", "Christophe Renaud-Plourde"],
   "Charles-Antoine Fournier": ["Hany Derriche", "Allyson Landry", "Charles-Étienne Hogue", "Théodore Nadeau"],
@@ -69,43 +71,94 @@ const PAIRINGS = {
   "Mélissa St-Pierre": ["Émilie Dominique Larouche", "Kalel Deschênes", "Tommy Roy"],
   "Jérémie Hatier": ["Florence Roberge", "Sulyvan Côté"],
   "Alex Baker": ["Jérémie Bossé", "Anabelle Sansonetti", "Mathis Couture", "Maxime Leblanc"],
-  "Louis Grégoire": ["Philémon Robert", "Émile Denechaud", "Xavier Bilodeau"]
+  "Louis Grégoire": ["Philémon Robert", "Émile Denechaud", "Xavier Bilodeau"],
   // Ajoute d'autres parrains au besoin…
 };
 
-// ---- Helpers ----
+/* ======================
+   Helpers (tri & normalisation)
+   ====================== */
 const normalizeName = (s) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
-// clé de tri = nom de famille (dernier mot), accents ignorés
-const lastNameKey = (full) => {
-  const parts = (full || "").trim().replace(/\s+/g, " ").split(" ");
-  return normalizeName(parts[parts.length - 1] || "");
+const lastName = (full) => {
+  const parts = full.trim().split(/\s+/);
+  return parts.length ? parts[parts.length - 1] : full;
 };
 
-// tri alphabétique par nom de famille (puis par nom complet pour départager)
-const sortByLastName = (arr) =>
-  arr.slice().sort((a, b) => {
-    const la = lastNameKey(a);
-    const lb = lastNameKey(b);
-    if (la < lb) return -1;
-    if (la > lb) return 1;
-    const fa = normalizeName(a);
-    const fb = normalizeName(b);
-    return fa.localeCompare(fb);
-  });
+const compareByLastName = (a, b) => {
+  const la = normalizeName(lastName(a));
+  const lb = normalizeName(lastName(b));
+  if (la < lb) return -1;
+  if (la > lb) return 1;
+  // tie-break on full normalized
+  const fa = normalizeName(a);
+  const fb = normalizeName(b);
+  return fa.localeCompare(fb);
+};
 
-const parseLegacyMentors = (raw) =>
-  raw
-    .split(/(?:,|&|\+|\/| et )/i)
-    .map((x) => x.trim())
-    .filter(Boolean);
-
-// listes pour menus déroulants (triées par nom de famille)
-const MENTOR_OPTIONS = sortByLastName(Object.keys(PAIRINGS));
-const STUDENT_OPTIONS = sortByLastName(Array.from(new Set(Object.values(PAIRINGS).flat())));
+// Listes déroulantes triées
+const ALL_MENTORS = Object.keys(PAIRINGS).sort(compareByLastName);
+const ALL_STUDENTS = Array.from(
+  new Set(Object.values(PAIRINGS).flat())
+).sort(compareByLastName);
 
 const STORAGE_KEY = "ul_rally_state_v1";
+
+/* ---------- Lightbox (zoom plein écran) ---------- */
+function Lightbox({ src, alt = "Agrandissement", onClose }) {
+  const [scale, setScale] = React.useState(1);
+
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  const onWheel = (e) => {
+    e.preventDefault();
+    const dir = e.deltaY < 0 ? 1 : -1;
+    const next = Math.min(6, Math.max(1, scale + dir * 0.2));
+    setScale(next);
+  };
+
+  const onDoubleClick = () => setScale((s) => (s === 1 ? 2 : 1));
+
+  if (!src) return null;
+
+  const content = (
+    <div className="fixed inset-0 bg-black/80 p-4" style={{ zIndex: 9999 }} onClick={onClose}>
+      <div
+        className="w-full h-full overflow-auto flex items-center justify-center cursor-zoom-out"
+        onWheel={onWheel}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="rounded-xl shadow-2xl cursor-zoom-in select-none"
+          style={{ transform: `scale(${scale})`, transformOrigin: "center center", maxWidth: "100%", maxHeight: "100%", touchAction: "manipulation" }}
+          onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
+          onClick={(e) => e.stopPropagation()}
+          draggable={false}
+        />
+      </div>
+      <button
+        onClick={onClose}
+        className="absolute top-3 right-3 text-white/90 text-2xl leading-none px-2"
+        aria-label="Fermer"
+      >
+        ×
+      </button>
+    </div>
+  );
+
+  return createPortal(content, document.body);
+}
 
 /* ---------- Panneau de débogage ---------- */
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
@@ -171,32 +224,15 @@ export default function RallyeULApp() {
   const [unlocked, setUnlocked] = useState(false);
   const [showTestMode, setShowTestMode] = useState(false);
 
-  // Lightbox image d’indice
-  const [lightboxSrc, setLightboxSrc] = useState(null);
-
-  // Parrains/marraines: saisie un-à-un via menu déroulant
-  const [mentors, setMentors] = useState([]);
+  // Sélections pour les menus déroulants
+  const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedMentor, setSelectedMentor] = useState("");
 
-  // Étudiants: saisie un-à-un via menu déroulant
-  const [selectedStudent, setSelectedStudent] = useState("");
+  // Parrains/marraines: liste “figée” (exactement 2 requis)
+  const [mentors, setMentors] = useState([]);
 
-  // ajout via dropdown (évite doublons)
-  const addMentor = () => {
-    const name = (selectedMentor || "").trim();
-    if (!name) return;
-    setMentors((m) => Array.from(new Set([...m, name])));
-    setSelectedMentor("");
-  };
-  const removeMentor = (name) => setMentors((m) => m.filter((n) => n !== name));
-
-  const addMember = () => {
-    const name = (selectedStudent || "").trim();
-    if (!name) return;
-    setTeam((t) => Array.from(new Set([...t, name])));
-    setSelectedStudent("");
-  };
-  const removeMember = (name) => setTeam((t) => t.filter((n) => n !== name));
+  // zoom image
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   // chargement / persistance
   useEffect(() => {
@@ -209,13 +245,6 @@ export default function RallyeULApp() {
         setCurrentIdx(s.currentIdx || 0);
         setMentors(s.mentors || []);
       } catch {}
-    }
-    // migration éventuelle de l’ancienne clé "mentor"
-    const legacy = localStorage.getItem("mentor");
-    if (legacy) {
-      const parsed = parseLegacyMentors(legacy).slice(0, 2);
-      if (parsed.length) setMentors((m) => (m.length ? m : parsed));
-      localStorage.removeItem("mentor");
     }
   }, []);
 
@@ -233,6 +262,27 @@ export default function RallyeULApp() {
   // ordre FIXE
   const currentStation = STATIONS[currentIdx];
   const progressPct = Math.round((currentIdx / STATIONS.length) * 100);
+
+  // équipe (étudiants) — via menu déroulant + bouton
+  const addMember = () => {
+    const name = selectedStudent.trim();
+    if (!name) return;
+    setTeam((t) => Array.from(new Set([...t, name])));
+    setSelectedStudent("");
+  };
+  const removeMember = (name) => setTeam((t) => t.filter((n) => n !== name));
+
+  // parrains/marraines — via menu déroulant + bouton
+  const addMentor = () => {
+    const name = selectedMentor.trim();
+    if (!name) return;
+    setMentors((m) => {
+      const next = Array.from(new Set([...m, name]));
+      return next.slice(0, 2); // on tolère max 2
+    });
+    setSelectedMentor("");
+  };
+  const removeMentor = (name) => setMentors((m) => m.filter((n) => n !== name));
 
   const applyDebugState = () => {
     const teamNames = debugTeam.split(",").map((n) => n.trim()).filter(Boolean);
@@ -278,7 +328,7 @@ export default function RallyeULApp() {
       return;
     }
     if (mentors.length !== 2) {
-      alert("Veuillez entrer exactement 2 parrains/marraines (un à la fois).");
+      alert("Veuillez entrer exactement 2 parrains/marraines (via le menu déroulant).");
       return;
     }
 
@@ -295,18 +345,16 @@ export default function RallyeULApp() {
 
     // Sets normalisés
     const teamSetNorm = new Set(team.map(normalizeName));
-    const allowedMap = new Map();
-    for (const nm of allowed) allowedMap.set(normalizeName(nm), nm);
-    const allowedSetNorm = new Set(allowedMap.keys());
+    const allowedSetNorm = new Set(allowed.map(normalizeName));
 
-    // 1) Refuser toute personne hors des 2 listes (message générique, pas de liste détaillée)
+    // 1) Refuser toute personne hors des 2 listes (message générique)
     const hasExtras = team.some((x) => !allowedSetNorm.has(normalizeName(x)));
     if (hasExtras) {
       alert("Certains des membres entrés ne sont pas associés à ces parrains/marraines. Si l’erreur persiste, appelez Alex ou Jérémie.");
       return;
     }
 
-    // 2) Exiger que TOUS les filleuls des 2 listes aient été saisis (message générique)
+    // 2) Exiger que TOUS les filleuls des 2 listes aient été saisis (message générique demandé)
     const missingExists = [...allowedSetNorm].some((norm) => !teamSetNorm.has(norm));
     if (missingExists) {
       alert("Il manque des membres obligatoires pour ces parrains/marraines. Si l’erreur persiste, contactez moi ou Alex.");
@@ -346,10 +394,10 @@ export default function RallyeULApp() {
     setCurrentIdx(0);
     setCodeInput("");
     setUnlocked(false);
+    localStorage.removeItem(STORAGE_KEY);
     setMentors([]);
     setSelectedMentor("");
     setSelectedStudent("");
-    localStorage.removeItem(STORAGE_KEY);
   };
 
   const timeFmt = (s) => {
@@ -359,9 +407,28 @@ export default function RallyeULApp() {
     return hh === "00" ? `${mm}:${ss}` : `${hh}:${mm}:${ss}`;
   };
 
-  // options filtrées ET re-triées par nom de famille
-  const mentorChoices = sortByLastName(MENTOR_OPTIONS.filter((m) => !mentors.includes(m)));
-  const studentChoices = sortByLastName(STUDENT_OPTIONS.filter((n) => !team.includes(n)));
+  // Écran de fin (sobre + consignes Vachon + temps)
+  const FinishedCard = () => (
+    <Card className="shadow-sm">
+      <CardHeader>
+        <CardTitle>Félicitations 🎉</CardTitle>
+        <CardDescription>Rallye complété!</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm text-slate-700">
+        <div><span className="font-medium">Équipe:</span> {team.join(", ")}</div>
+        <div><span className="font-medium">Temps total:</span> {timeFmt(seconds)}</div>
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
+          Rendez-vous à la <span className="font-semibold">cafétéria du pavillon Vachon</span>.  
+          Profitez du temps restant pour compléter le <span className="font-semibold">bingo</span>!
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button onClick={resetAll} variant="secondary" className="gap-2">
+          <RotateCcw className="h-4 w-4" /> Recommencer
+        </Button>
+      </CardFooter>
+    </Card>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
@@ -406,6 +473,7 @@ export default function RallyeULApp() {
                   Votre premier indice viendra par après!
                 </CardDescription>
               </CardHeader>
+
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-5 gap-4">
                   {/* Équipe (étudiants) */}
@@ -417,15 +485,16 @@ export default function RallyeULApp() {
                         value={selectedStudent}
                         onChange={(e) => setSelectedStudent(e.target.value)}
                       >
-                        <option value="">— Sélectionner un·e étudiant·e —</option>
-                        {studentChoices.map((n) => (
-                          <option key={n} value={n}>{n}</option>
+                        <option value="">— Choisir un nom —</option>
+                        {ALL_STUDENTS.map((s) => (
+                          <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
                       <Button onClick={addMember} className="gap-2">
                         <Plus className="h-4 w-4" /> Ajouter
                       </Button>
                     </div>
+
                     <div className="flex flex-wrap gap-2 pt-1">
                       {team.length === 0 && (
                         <span className="text-xs text-slate-500">Aucun membre pour l'instant.</span>
@@ -449,7 +518,7 @@ export default function RallyeULApp() {
                     </div>
                   </div>
 
-                  {/* Parrains/marraines (un-à-un) */}
+                  {/* Parrains/marraines (un-à-un via dropdown) */}
                   <div className="md:col-span-3 space-y-3">
                     <label className="text-sm font-medium">Parrains/marraines</label>
                     <div className="flex items-center gap-2">
@@ -458,8 +527,8 @@ export default function RallyeULApp() {
                         value={selectedMentor}
                         onChange={(e) => setSelectedMentor(e.target.value)}
                       >
-                        <option value="">— Sélectionner un parrain/marraine —</option>
-                        {mentorChoices.map((m) => (
+                        <option value="">— Choisir un nom —</option>
+                        {ALL_MENTORS.map((m) => (
                           <option key={m} value={m}>{m}</option>
                         ))}
                       </select>
@@ -523,23 +592,7 @@ export default function RallyeULApp() {
             </div>
 
             {currentIdx >= STATIONS.length ? (
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle>Parcours terminé 🎉</CardTitle>
-                  <CardDescription>
-                    Félicitations! Rendez-vous à la cafétéria du pavillon Vachon.
-                    S’il reste du temps, complétez le bingo! ⏱️ Temps: {timeFmt(seconds)}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm text-slate-700">
-                  <div><span className="font-medium">Équipe:</span> {team.join(", ")}</div>
-                </CardContent>
-                <CardFooter>
-                  <Button onClick={resetAll} variant="secondary" className="gap-2">
-                    <RotateCcw className="h-4 w-4" /> Recommencer
-                  </Button>
-                </CardFooter>
-              </Card>
+              <FinishedCard />
             ) : (
               currentStation && (
                 <div className="grid md:grid-cols-5 gap-4">
@@ -569,7 +622,7 @@ export default function RallyeULApp() {
                             onClick={() => setLightboxSrc(currentStation.image)}
                             draggable={false}
                           />
-                          <p className="text-xs text-slate-500 mt-1">Appuyez pour agrandir</p>
+                          <p className="text-xs text-slate-500 mt-1">Appuyez pour agrandir (double-clic / molette pour zoomer)</p>
                         </div>
                       )}
                     </CardContent>
@@ -626,6 +679,15 @@ export default function RallyeULApp() {
 
         <div className="pt-6 text-center text-xs text-slate-500">Baker is such a beast!!.</div>
 
+        {/* Lightbox globale */}
+        {lightboxSrc && (
+          <Lightbox
+            src={lightboxSrc}
+            alt="Agrandissement de l’indice"
+            onClose={() => setLightboxSrc(null)}
+          />
+        )}
+
         {showDebug && (
           <DebugPanel
             team={debugTeam}
@@ -635,22 +697,6 @@ export default function RallyeULApp() {
             onApply={applyDebugState}
             onClose={() => setShowDebug(false)}
           />
-        )}
-
-        {/* Lightbox plein écran pour zoom */}
-        {lightboxSrc && (
-          <div
-            className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
-            onClick={() => setLightboxSrc(null)}
-          >
-            <img
-              src={lightboxSrc}
-              alt="Agrandissement"
-              className="max-w-[95vw] max-h-[90vh] rounded-xl shadow-2xl"
-              style={{ touchAction: "pinch-zoom" }}
-              draggable={false}
-            />
-          </div>
         )}
       </main>
     </div>
