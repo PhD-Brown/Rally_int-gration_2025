@@ -2,28 +2,14 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-  import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import {
-  Plus,
-  Trash2,
-  Users,
-  MapPin,
-  Lock,
-  Unlock,
-  CheckCircle2,
-  Clock,
-  ChevronRight,
-  RotateCcw,
+  Plus, Trash2, Users, MapPin, Lock, Unlock, CheckCircle2, Clock, ChevronRight, RotateCcw,
 } from "lucide-react";
 import { validateCode, registerTeam, pushProgress } from "@/lib/api";
 import Admin from "./Admin.jsx";
@@ -32,49 +18,62 @@ import Admin from "./Admin.jsx";
    STATIONS (ordre fixe)
    ====================== */
 const STATIONS = [
-  { id: "S01", name: "Serres", clue: "Jack et le haricot magique", code: "LeSecretDeLaLicorne", requiresPhoto: false, requiresMeasurement: false, image: "/indices/serres.jpg" },
-  { id: "S02", name: "Local de l'ADÉPUL", clue: "Trouvez votre local d'asso!", code: "LaFlûteÀSixSchtroumpfs", requiresPhoto: false, requiresMeasurement: false, image: "/indices/adepul.jpg" },
-  { id: "S03", name: "Bureau du directeur de programme", clue: "Zoom au-delà de la longuer de Planck", code: "SpirouÀNewYork", requiresPhoto: false, requiresMeasurement: false, image: "/indices/porte_cote.jpg" },
-  { id: "S04", name: 'Babillard "Festijeu"', clue: "Revenez sur vos pas!", code: "LesDaltonsSeRachètent", requiresPhoto: false, requiresMeasurement: false, image: "/indices/affiche_festijeux.jpg" },
-  { id: "S05", name: "Salle de cours", clue: "Autant se muscler les cuisses tout de suite", code: "LeMarsupilami", requiresPhoto: false, requiresMeasurement: false, image: "/indices/salle_de_classe.jpg" },
-  { id: "S06", name: "Lab d'info", clue: "[Jack et le haricot magique]^[-1]", code: "LeTrésorDeRackhamLeRouge", requiresMeasurement: false, image: "/indices/tableau_nerds.jpg" },
-  { id: "S07", name: "En direction du COPL", clue: "Les corridors du Vachon sont bien longs", code: "LaSerpeDOr", requiresPhoto: false, requiresMeasurement: false, image: "/indices/corridor_copl.jpg" },
-  { id: "S08", name: "Bibliothèque scientifique", clue: "Juste en face du département", code: "LeCasLagaffe", requiresPhoto: false, requiresMeasurement: false, image: "/indices/bibli_vachon.jpg" },
-  { id: "S09", name: "Colosse", clue: "Le grand silo à grain", code: "FélixVousOffreGénéreusementDesBeignes", requiresPhoto: false, requiresMeasurement: false, image: "/indices/enviro.jpg" },
-  { id: "S10", name: "Stade TELUS", clue: "À portée de vue", code: "LEvasionDesDaltons", requiresPhoto: false, requiresMeasurement: false, image: "/indices/stade_interieur.jpg" },
-  { id: "S11", name: "PEPS", clue: "Sans grande surprise, également à portée de vue", code: "TintinEtLesPicaros", requiresPhoto: false, requiresMeasurement: false, image: "/indices/peps.jpg" },
-  { id: "S12", name: "Tunnels - Jeux de la Physique", clue: "Rendez-vous au PubU!", code: "GareAuxGaffesDuGarsGonflé", requiresPhoto: false, requiresMeasurement: false, image: "/indices/jdlp.jpg" },
-  { id: "S13", name: "Agora du Desjardins", clue: "Au fin fin fond du couloir", code: "LHéritageDeRantanplan", requiresPhoto: false, requiresMeasurement: false, image: "/indices/tracteur_desjardins.jpg" },
-  { id: "S14", name: "Vous savez où aller!", clue: "La porte sera barrée", code: "AstérixChezLesBretons", requiresPhoto: false, requiresMeasurement: false, image: "/indices/devant_bonenfant.jpg" },
-  { id: "S15", name: "Boisé", clue: "Entouré des oiseaux et des écureuils", code: "OkCoral", requiresPhoto: false, requiresMeasurement: false, image: "/indices/boise.jpg" },
-  { id: "S16", name: "Grand Axe - Cadran Solaire", clue: "Entouré de gazon et d'asphalte", code: "AstérixEtCléopâtre", requiresPhoto: false, requiresMeasurement: false, image: "/indices/cadran_solaire.jpg" },
-  { id: "S17", name: "Globe terrestre", clue: "Le pavillon machiavélique", code: "ObjectifLune", requiresPhoto: false, requiresMeasurement: false, image: "/indices/globe_pouliot.jpg" },
-  { id: "S18", name: "Corridor de classe au Pouliot", clue: "À quelque part dans ce labyrinthe", code: "LeSchtroumpfissime", requiresPhoto: false, requiresMeasurement: false, image: "/indices/classe_pouliot.jpg" },
-  { id: "S19", name: "Cafétéria", clue: "Sous Terre", code: "LAffaireTournesol", requiresPhoto: false, requiresMeasurement: false, image: "/indices/cafeteria_pouliot.jpg" },
-  { id: "S20", name: "Département de Physique", clue: "Juste en face de la biblio", code: "GareAuxGaffes", requiresPhoto: false, requiresMeasurement: false, image: "/indices/departement_physique.jpg" },
+  { id: "S01", name: "Serres", clue: "Jack et le haricot magique", code: "LeSecretDeLaLicorne", image: "/indices/serres.jpg" },
+  { id: "S02", name: "Local de l'ADÉPUL", clue: "Trouvez votre local d'asso!", code: "LaFlûteÀSixSchtroumpfs", image: "/indices/adepul.jpg" },
+  { id: "S03", name: "Bureau du directeur de programme", clue: "Zoom au-delà de la longuer de Planck", code: "SpirouÀNewYork", image: "/indices/porte_cote.jpg" },
+  { id: "S04", name: 'Babillard "Festijeu"', clue: "Revenez sur vos pas!", code: "LesDaltonsSeRachètent", image: "/indices/affiche_festijeux.jpg" },
+  { id: "S05", name: "Salle de cours", clue: "Autant se muscler les cuisses tout de suite", code: "LeMarsupilami", image: "/indices/salle_de_classe.jpg" },
+  { id: "S06", name: "Lab d'info", clue: "[Jack et le haricot magique]^[-1]", code: "LeTrésorDeRackhamLeRouge", image: "/indices/tableau_nerds.jpg" },
+  { id: "S07", name: "En direction du COPL", clue: "Les corridors du Vachon sont bien longs", code: "LaSerpeDOr", image: "/indices/corridor_copl.jpg" },
+  { id: "S08", name: "Bibliothèque scientifique", clue: "Juste en face du département", code: "LeCasLagaffe", image: "/indices/bibli_vachon.jpg" },
+  { id: "S09", name: "Colosse", clue: "Le grand silo à grain", code: "FélixVousOffreGénéreusementDesBeignes", image: "/indices/enviro.jpg" },
+  { id: "S10", name: "Stade TELUS", clue: "À portée de vue", code: "LEvasionDesDaltons", image: "/indices/stade_interieur.jpg" },
+  { id: "S11", name: "PEPS", clue: "Sans grande surprise, également à portée de vue", code: "TintinEtLesPicaros", image: "/indices/peps.jpg" },
+  { id: "S12", name: "Tunnels - Jeux de la Physique", clue: "Rendez-vous au PubU!", code: "GareAuxGaffesDuGarsGonflé", image: "/indices/jdlp.jpg" },
+  { id: "S13", name: "Agora du Desjardins", clue: "Au fin fin fond du couloir", code: "LHéritageDeRantanplan", image: "/indices/tracteur_desjardins.jpg" },
+  { id: "S14", name: "Vous savez où aller!", clue: "La porte sera barrée", code: "AstérixChezLesBretons", image: "/indices/devant_bonenfant.jpg" },
+  { id: "S15", name: "Boisé", clue: "Entouré des oiseaux et des écureuils", code: "OkCoral", image: "/indices/boise.jpg" },
+  { id: "S16", name: "Grand Axe - Cadran Solaire", clue: "Entouré de gazon et d'asphalte", code: "AstérixEtCléopâtre", image: "/indices/cadran_solaire.jpg" },
+  { id: "S17", name: "Globe terrestre", clue: "Le pavillon machiavélique", code: "ObjectifLune", image: "/indices/globe_pouliot.jpg" },
+  { id: "S18", name: "Corridor de classe au Pouliot", clue: "À quelque part dans ce labyrinthe", code: "LeSchtroumpfissime", image: "/indices/classe_pouliot.jpg" },
+  { id: "S19", name: "Cafétéria", clue: "Sous Terre", code: "LAffaireTournesol", image: "/indices/cafeteria_pouliot.jpg" },
+  { id: "S20", name: "Département de Physique", clue: "Juste en face de la biblio", code: "GareAuxGaffes", image: "/indices/departement_physique.jpg" },
 ];
 
-/* =============================
-   Dictionnaire Parrain → Filleuls
-   (édite avec tes vrais noms)
-   ============================= */
+/* ==========================================
+   Dictionnaire Parrain → 4 filleuls (à remplir)
+   Tu peux mettre 1 ou 2 parrains dans le champ ;
+   si 2, on attend l’union de leurs 2×4 filleuls.
+   ========================================== */
 const PAIRINGS = {
-  // EXEMPLES (remplace !) :
-  "Marie Tremblay": ["Alice Martin", "Bob Lavoie", "Chloé Gagnon", "David Fortin"],
-  "Jérémie Hatier": ["Élodie Côté", "Félix Dubé", "Inès Roy", "Liam Bouchard"],
+  "Clément Tremblay": ["Narayan Vigneault", "Marie Gervais","Laurent Sirois", "Anakin Schroeder Tabah"],
+  "Frédérik Strach": ["Fredric Waler", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"],
+  "Xavier Lemens": ["Alexandre Bourgeois", "Charles-Émile Roy", "Jules Hermel", "Matheus Bernardo-Cunha"],
+  "Jean-Frédéric Savard": ["Nassim Naili","Christophe Renaud-Plourde"],
+  "Charles-Antoine Fournier": ["Hany Derriche", "Allyson Landry", "Charles-Étienne Hogue", "Théodore Nadeau"],
+  "Anouk Plouffe": ["Charles Plamondon", "Camille Pagé", "Médirck Boudreault"],
+  "Félix Dubé": ["Clovis Veilleux", "Guillaume Perron", "Dara Alexis Richer"],
+  "Arthur Légaré": ["Zénon Michaud", "Mégane Faucher", "Jacob Bossé"],
+  "Mélissa St-Pierre": ["Émilie Dominique Larouche", "Kalel Deschênes", "Tommy Roy"],
+  "Jérémie Hatier": ["Florence Roberge", "Sulyvan Côté"],
+  "Alex Baker": ["Jérémie Bossé", "Anabelle Sansonetti", "Mathis Couture", "Maxime Leblanc"],
+  "Louis Grégoire": ["Philémon Robert", "Émile Denechaud", "Xavier Bilodeau"],
+  // Ajoute d'autres parrains au besoin…
 };
 
-// Normalisation légère pour comparer proprement (sans casse/accents/espaces)
+// ---- Helpers ----
 const normalizeName = (s) =>
-  s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 const STORAGE_KEY = "ul_rally_state_v1";
 
-/* ---------- Panneau de débogage ---------- */
+// accepte séparateurs: virgule, &, +, slash, " et "
+const parseMentorNames = (raw) =>
+  raw
+    .split(/(?:,|&|\+|\/| et )/i)
+    .map((x) => x.trim())
+    .filter(Boolean);
+
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
@@ -87,11 +86,7 @@ function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onAppl
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Noms des membres</label>
-              <Input
-                placeholder="Alex, Cath, ..."
-                value={team}
-                onChange={(e) => onTeamChange(e.target.value)}
-              />
+              <Input placeholder="Alex, Cath, ..." value={team} onChange={(e) => onTeamChange(e.target.value)} />
               <p className="text-xs text-slate-500">Séparez les noms par une virgule.</p>
             </div>
             <div className="space-y-2">
@@ -120,12 +115,10 @@ function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onAppl
 }
 
 export default function RallyeULApp() {
-  // route /admin
   if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) {
     return <Admin />;
   }
 
-  // état global
   const [showDebug, setShowDebug] = useState(false);
   const [debugTeam, setDebugTeam] = useState("");
   const [debugStationIdx, setDebugStationIdx] = useState("0");
@@ -139,7 +132,6 @@ export default function RallyeULApp() {
   const [unlocked, setUnlocked] = useState(false);
   const [showTestMode, setShowTestMode] = useState(false);
 
-  // parrain/marraine — un seul
   const [mentor, setMentor] = useState("");
   const [mentorSaved, setMentorSaved] = useState("");
 
@@ -177,7 +169,6 @@ export default function RallyeULApp() {
     return () => clearInterval(id);
   }, [startedAt]);
 
-  // ordre FIXE
   const currentStation = STATIONS[currentIdx];
   const progressPct = Math.round((currentIdx / STATIONS.length) * 100);
 
@@ -204,66 +195,70 @@ export default function RallyeULApp() {
 
   const validateAndUnlock = async () => {
     if (!currentStation) return;
-
     try {
       await validateCode(currentStation.id, codeInput);
-
-      // Sauvegarde minimale (plus de photos/notes/mesures)
       const teamId = team.join("-") || "anon";
-      await pushProgress(teamId, currentStation.id, seconds, {});
-
+      await pushProgress(teamId, currentStation.id, seconds, {}); // plus de photos/notes/mesures
       setUnlocked(true);
     } catch (e) {
       alert("Code invalide. Réessayez.");
     }
   };
 
-  // Recherche du parrain (normalisée)
-  const findMentorKey = (name) => {
-    const target = normalizeName(name);
-    return Object.keys(PAIRINGS).find((k) => normalizeName(k) === target) || null;
+  // Trouve les clés de parrains correspondant au texte saisi (1 ou 2)
+  const findMentorKeys = (raw) => {
+    const names = parseMentorNames(raw);
+    if (names.length === 0) return [];
+    const keys = Object.keys(PAIRINGS);
+    const found = [];
+    for (const n of names) {
+      const norm = normalizeName(n);
+      const k = keys.find((k) => normalizeName(k) === norm);
+      if (!k) return null; // un nom inconnu
+      found.push(k);
+    }
+    // empêcher doublon si la personne tape 2x le même nom
+    return Array.from(new Set(found));
   };
 
-  // ---- Règles au démarrage (parrain + 4 filleuls exacts) ----
+  // ---- Validation au démarrage ----
   const startRun = async () => {
     if (team.length === 0) {
-      alert("Ajoutez au moins un membre.");
+      alert("Il manque des membres d'équipe.");
       return;
     }
     if (!mentorSaved.trim()) {
-      alert("Ajoutez un parrain/marraine avant de commencer.");
+      alert("Veuillez entrer le nom de votre parrain/marraine.");
       return;
     }
 
-    const mentorKey = findMentorKey(mentorSaved);
-    if (!mentorKey) {
+    const mentorKeys = findMentorKeys(mentorSaved);
+    if (!mentorKeys) {
       const available = Object.keys(PAIRINGS).join(", ");
-      alert(
-        `Parrain inconnu: "${mentorSaved}".\nParrains disponibles: ${available || "aucun défini dans PAIRINGS"}`
-      );
+      alert(`Nom de parrain/marraine non reconnu.\nParrains/marraines possibles : ${available || "(à remplir dans le code)"}`);
+      return;
+    }
+    if (mentorKeys.length > 2) {
+      alert("Vous ne pouvez sélectionner qu'un ou deux parrains/marraines.");
       return;
     }
 
-    const expected = PAIRINGS[mentorKey] || [];
-    const expectedNormSet = new Set(expected.map(normalizeName));
-    const teamNormSet = new Set(team.map(normalizeName));
+    // Liste attendue = union des filleuls des 1–2 parrains choisis
+    const expected = mentorKeys.flatMap((k) => PAIRINGS[k] || []);
+    const expectedSet = new Set(expected.map(normalizeName));
+    const teamSet = new Set(team.map(normalizeName));
 
-    if (teamNormSet.size !== expectedNormSet.size) {
-      alert(
-        `Le parrain "${mentorKey}" attend exactement ${expected.length} filleuls: ${expected.join(
-          ", "
-        )}.\nMembres saisis: ${team.join(", ")}`
-      );
-      return;
-    }
+    // Correspondance exacte
+    if (teamSet.size !== expectedSet.size ||
+        expected.some((x) => !teamSet.has(normalizeName(x))) ||
+        team.some((x) => !expectedSet.has(normalizeName(x)))) {
 
-    const missing = expected.filter((x) => !teamNormSet.has(normalizeName(x)));
-    const extras = team.filter((x) => !expectedNormSet.has(normalizeName(x)));
-
-    if (missing.length || extras.length) {
-      let msg = `L'équipe ne correspond pas aux filleuls attendus pour "${mentorKey}".`;
-      if (missing.length) msg += `\nManquants: ${missing.join(", ")}`;
-      if (extras.length) msg += `\nNon attendus: ${extras.join(", ")}`;
+      // Détails manquants / en trop
+      const missing = expected.filter((x) => !teamSet.has(normalizeName(x)));
+      const extras = team.filter((x) => !expectedSet.has(normalizeName(x)));
+      let msg = "La composition de l'équipe ne correspond pas aux filleuls associés au(x) parrain(s) choisi(s).";
+      if (missing.length) msg += `\nManquants : ${missing.join(", ")}`;
+      if (extras.length) msg += `\nNon attendus : ${extras.join(", ")}`;
       alert(msg);
       return;
     }
@@ -281,7 +276,8 @@ export default function RallyeULApp() {
       console.warn("registerTeam failed", e);
     }
 
-    localStorage.setItem("mentor", mentorKey); // on persiste le parrain tel que présent dans la table
+    // On persiste le texte saisi (pour retrouver le duo si besoin)
+    localStorage.setItem("mentor", mentorSaved.trim());
   };
 
   const goNext = () => {
@@ -322,14 +318,10 @@ export default function RallyeULApp() {
       <header className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-emerald-600/90 grid place-items-center text-white font-bold">
-              UL
-            </div>
+            <div className="h-9 w-9 rounded-xl bg-emerald-600/90 grid place-items-center text-white font-bold">UL</div>
             <div>
               <div className="text-lg font-semibold">Rallye sur le campus</div>
-              <div className="text-xs text-slate-500">
-                Rallye d'intégrations en physique — Université Laval
-              </div>
+              <div className="text-xs text-slate-500">Rallye d'intégrations en physique — Université Laval</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -356,7 +348,8 @@ export default function RallyeULApp() {
                   <Users className="h-5 w-5" /> Rejoignez votre équipe!
                 </CardTitle>
                 <CardDescription>
-                  Entrez le parrain/marraine et les 4 filleuls qui lui sont associés (selon la table d’association).
+                  Entrez le nom des membres de votre équipe ainsi que celui de votre parrain/marraine.
+                  Votre premier indice viendra par après!
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -380,11 +373,7 @@ export default function RallyeULApp() {
                         <span className="text-xs text-slate-500">Aucun membre pour l'instant.</span>
                       )}
                       {team.map((name) => (
-                        <Badge
-                          key={name}
-                          variant="secondary"
-                          className="px-2 py-1 text-sm flex items-center gap-2"
-                        >
+                        <Badge key={name} variant="secondary" className="px-2 py-1 text-sm flex items-center gap-2">
                           {name}
                           <button
                             aria-label={`Retirer ${name}`}
@@ -396,18 +385,15 @@ export default function RallyeULApp() {
                         </Badge>
                       ))}
                     </div>
-                    <p className="text-xs text-slate-500">
-                      Rappel : l’équipe doit correspondre exactement aux 4 filleuls du parrain choisi.
-                    </p>
                   </div>
 
-                  {/* Parrain/Marraine (un seul) */}
+                  {/* Parrain/Marraine (1 ou 2 noms) */}
                   <div className="md:col-span-3 space-y-3">
-                    <label className="text-sm font-medium">Nom de votre parrain/marraine</label>
+                    <label className="text-sm font-medium">Parrain/marraine (1 ou 2 noms)</label>
                     <div className="flex items-center gap-2">
                       <Input
                         type="text"
-                        placeholder="Ex: Marie Tremblay"
+                        placeholder="Ex: Clément & Frédérik"
                         value={mentor}
                         onChange={(e) => setMentor(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && addMentor()}
@@ -425,12 +411,10 @@ export default function RallyeULApp() {
                     <div className="pt-1">
                       {mentorSaved ? (
                         <Badge variant="secondary" className="px-2 py-1 text-sm">
-                          Parrain : {mentorSaved}
+                          Parrain(s) : {mentorSaved}
                         </Badge>
                       ) : (
-                        <span className="text-xs text-slate-500">
-                          Le nom doit exister dans la table d’association (voir code).
-                        </span>
+                        <span className="text-xs text-slate-500">Séparez deux noms par “&”, “,” ou “et”.</span>
                       )}
                     </div>
                   </div>
@@ -571,7 +555,16 @@ export default function RallyeULApp() {
             onTeamChange={setDebugTeam}
             stationIdx={debugStationIdx}
             onStationIdxChange={setDebugStationIdx}
-            onApply={applyDebugState}
+            onApply={() => {
+              const teamNames = debugTeam.split(",").map((n) => n.trim()).filter(Boolean);
+              if (teamNames.length === 0) return alert("Entrez au moins un nom d'équipe.");
+              setTeam(teamNames);
+              setCurrentIdx(parseInt(debugStationIdx, 10));
+              setStartedAt(Date.now());
+              setUnlocked(false);
+              setCodeInput("");
+              setShowDebug(false);
+            }}
             onClose={() => setShowDebug(false)}
           />
         )}
