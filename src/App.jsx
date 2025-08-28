@@ -77,16 +77,33 @@ const PAIRINGS = {
 const normalizeName = (s) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
+// clé de tri = nom de famille (dernier mot), accents ignorés
+const lastNameKey = (full) => {
+  const parts = (full || "").trim().replace(/\s+/g, " ").split(" ");
+  return normalizeName(parts[parts.length - 1] || "");
+};
+
+// tri alphabétique par nom de famille (puis par nom complet pour départager)
+const sortByLastName = (arr) =>
+  arr.slice().sort((a, b) => {
+    const la = lastNameKey(a);
+    const lb = lastNameKey(b);
+    if (la < lb) return -1;
+    if (la > lb) return 1;
+    const fa = normalizeName(a);
+    const fb = normalizeName(b);
+    return fa.localeCompare(fb);
+  });
+
 const parseLegacyMentors = (raw) =>
   raw
     .split(/(?:,|&|\+|\/| et )/i)
     .map((x) => x.trim())
     .filter(Boolean);
 
-// listes pour menus déroulants
-const sortNames = (arr) => arr.slice().sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
-const MENTOR_OPTIONS = sortNames(Object.keys(PAIRINGS));
-const STUDENT_OPTIONS = sortNames(Array.from(new Set(Object.values(PAIRINGS).flat())));
+// listes pour menus déroulants (triées par nom de famille)
+const MENTOR_OPTIONS = sortByLastName(Object.keys(PAIRINGS));
+const STUDENT_OPTIONS = sortByLastName(Array.from(new Set(Object.values(PAIRINGS).flat())));
 
 const STORAGE_KEY = "ul_rally_state_v1";
 
@@ -339,9 +356,9 @@ export default function RallyeULApp() {
     return hh === "00" ? `${mm}:${ss}` : `${hh}:${mm}:${ss}`;
   };
 
-  // options filtrées pour éviter les doublons dans les sélections
-  const mentorChoices = MENTOR_OPTIONS.filter((m) => !mentors.includes(m));
-  const studentChoices = STUDENT_OPTIONS.filter((n) => !team.includes(n));
+  // options filtrées ET re-triées par nom de famille
+  const mentorChoices = sortByLastName(MENTOR_OPTIONS.filter((m) => !mentors.includes(m)));
+  const studentChoices = sortByLastName(STUDENT_OPTIONS.filter((n) => !team.includes(n)));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
