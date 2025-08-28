@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,11 +56,11 @@ const STATIONS = [
 
 /* ==========================================
    Dictionnaire Parrain/Marraine → Filleuls
-   (tes listes officielles)
+   (listes officielles)
    ========================================== */
 const PAIRINGS = {
   "Clément Tremblay": ["Narayan Vigneault", "Marie Gervais", "Laurent Sirois", "Anakin Schroeder Tabah"],
-  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"], // ← Walker (corrigé)
+  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"], // Walker (corrigé)
   "Xavier Lemens": ["Alexandre Bourgeois", "Charles-Émile Roy", "Jules Hermel", "Matheus Bernardo-Cunha"],
   "Jean-Frédéric Savard": ["Nassim Naili", "Christophe Renaud-Plourde"],
   "Charles-Antoine Fournier": ["Hany Derriche", "Allyson Landry", "Charles-Étienne Hogue", "Théodore Nadeau"],
@@ -91,7 +90,6 @@ const compareByLastName = (a, b) => {
   const lb = normalizeName(lastName(b));
   if (la < lb) return -1;
   if (la > lb) return 1;
-  // tie-break on full normalized
   const fa = normalizeName(a);
   const fb = normalizeName(b);
   return fa.localeCompare(fb);
@@ -99,66 +97,9 @@ const compareByLastName = (a, b) => {
 
 // Listes déroulantes triées
 const ALL_MENTORS = Object.keys(PAIRINGS).sort(compareByLastName);
-const ALL_STUDENTS = Array.from(
-  new Set(Object.values(PAIRINGS).flat())
-).sort(compareByLastName);
+const ALL_STUDENTS = Array.from(new Set(Object.values(PAIRINGS).flat())).sort(compareByLastName);
 
 const STORAGE_KEY = "ul_rally_state_v1";
-
-/* ---------- Lightbox (zoom plein écran) ---------- */
-function Lightbox({ src, alt = "Agrandissement", onClose }) {
-  const [scale, setScale] = React.useState(1);
-
-  React.useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [onClose]);
-
-  const onWheel = (e) => {
-    e.preventDefault();
-    const dir = e.deltaY < 0 ? 1 : -1;
-    const next = Math.min(6, Math.max(1, scale + dir * 0.2));
-    setScale(next);
-  };
-
-  const onDoubleClick = () => setScale((s) => (s === 1 ? 2 : 1));
-
-  if (!src) return null;
-
-  const content = (
-    <div className="fixed inset-0 bg-black/80 p-4" style={{ zIndex: 9999 }} onClick={onClose}>
-      <div
-        className="w-full h-full overflow-auto flex items-center justify-center cursor-zoom-out"
-        onWheel={onWheel}
-      >
-        <img
-          src={src}
-          alt={alt}
-          className="rounded-xl shadow-2xl cursor-zoom-in select-none"
-          style={{ transform: `scale(${scale})`, transformOrigin: "center center", maxWidth: "100%", maxHeight: "100%", touchAction: "manipulation" }}
-          onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(); }}
-          onClick={(e) => e.stopPropagation()}
-          draggable={false}
-        />
-      </div>
-      <button
-        onClick={onClose}
-        className="absolute top-3 right-3 text-white/90 text-2xl leading-none px-2"
-        aria-label="Fermer"
-      >
-        ×
-      </button>
-    </div>
-  );
-
-  return createPortal(content, document.body);
-}
 
 /* ---------- Panneau de débogage ---------- */
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
@@ -228,11 +169,23 @@ export default function RallyeULApp() {
   const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedMentor, setSelectedMentor] = useState("");
 
-  // Parrains/marraines: liste “figée” (exactement 2 requis)
+  // Parrains/marraines — exactement 2 requis
   const [mentors, setMentors] = useState([]);
 
-  // zoom image
+  // --- LIGHTBOX issu de ton extrait (zoom + overlay plein écran) ---
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const openLightbox = (src) => { setLightboxSrc(src); setZoom(1); setLightboxOpen(true); };
+  const closeLightbox = () => setLightboxOpen(false);
+  const zoomIn  = () => setZoom((z) => Math.min(5, +(z + 0.25).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)));
+  const resetZoom = () => setZoom(1);
+  const onWheelZoom = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    setZoom((z) => Math.min(5, Math.max(1, +(z + delta).toFixed(2))));
+  };
 
   // chargement / persistance
   useEffect(() => {
@@ -263,7 +216,7 @@ export default function RallyeULApp() {
   const currentStation = STATIONS[currentIdx];
   const progressPct = Math.round((currentIdx / STATIONS.length) * 100);
 
-  // équipe (étudiants) — via menu déroulant + bouton
+  // équipe (étudiants) — via menu déroulant
   const addMember = () => {
     const name = selectedStudent.trim();
     if (!name) return;
@@ -272,13 +225,13 @@ export default function RallyeULApp() {
   };
   const removeMember = (name) => setTeam((t) => t.filter((n) => n !== name));
 
-  // parrains/marraines — via menu déroulant + bouton
+  // parrains/marraines — via menu déroulant
   const addMentor = () => {
     const name = selectedMentor.trim();
     if (!name) return;
     setMentors((m) => {
       const next = Array.from(new Set([...m, name]));
-      return next.slice(0, 2); // on tolère max 2
+      return next.slice(0, 2); // max 2
     });
     setSelectedMentor("");
   };
@@ -302,7 +255,7 @@ export default function RallyeULApp() {
     try {
       await validateCode(currentStation.id, codeInput);
       const teamId = team.join("-") || "anon";
-      await pushProgress(teamId, currentStation.id, seconds, {}); // plus de photos/notes/mesures
+      await pushProgress(teamId, currentStation.id, seconds, {});
       setUnlocked(true);
     } catch (e) {
       alert("Code invalide. Réessayez.");
@@ -334,9 +287,7 @@ export default function RallyeULApp() {
 
     const mentorKeys = findMentorKeys(mentors);
     if (!mentorKeys) {
-      alert(
-        "Certains des noms de parrains/marraines sont incorrects. Réessayez; si l’erreur persiste, appelez Alex ou Jérémie."
-      );
+      alert("Certains des noms de parrains/marraines sont incorrects. Réessayez; si l’erreur persiste, appelez Alex ou Jérémie.");
       return;
     }
 
@@ -347,14 +298,14 @@ export default function RallyeULApp() {
     const teamSetNorm = new Set(team.map(normalizeName));
     const allowedSetNorm = new Set(allowed.map(normalizeName));
 
-    // 1) Refuser toute personne hors des 2 listes (message générique)
+    // 1) aucun membre hors des 2 listes
     const hasExtras = team.some((x) => !allowedSetNorm.has(normalizeName(x)));
     if (hasExtras) {
       alert("Certains des membres entrés ne sont pas associés à ces parrains/marraines. Si l’erreur persiste, appelez Alex ou Jérémie.");
       return;
     }
 
-    // 2) Exiger que TOUS les filleuls des 2 listes aient été saisis (message générique demandé)
+    // 2) tous les filleuls des 2 listes doivent être présents
     const missingExists = [...allowedSetNorm].some((norm) => !teamSetNorm.has(norm));
     if (missingExists) {
       alert("Il manque des membres obligatoires pour ces parrains/marraines. Si l’erreur persiste, contactez moi ou Alex.");
@@ -407,7 +358,7 @@ export default function RallyeULApp() {
     return hh === "00" ? `${mm}:${ss}` : `${hh}:${mm}:${ss}`;
   };
 
-  // Écran de fin (sobre + consignes Vachon + temps)
+  // Écran de fin
   const FinishedCard = () => (
     <Card className="shadow-sm">
       <CardHeader>
@@ -518,7 +469,7 @@ export default function RallyeULApp() {
                     </div>
                   </div>
 
-                  {/* Parrains/marraines (un-à-un via dropdown) */}
+                  {/* Parrains/marraines */}
                   <div className="md:col-span-3 space-y-3">
                     <label className="text-sm font-medium">Parrains/marraines</label>
                     <div className="flex items-center gap-2">
@@ -615,14 +566,15 @@ export default function RallyeULApp() {
 
                       {currentStation.image && (
                         <div className="mt-4">
+                          {/* Image non restreinte + ouverture du lightbox (zoom) */}
                           <img
                             src={currentStation.image}
                             alt="Image d'indice"
                             className="rounded-xl w-full object-contain border cursor-zoom-in"
-                            onClick={() => setLightboxSrc(currentStation.image)}
+                            onClick={() => openLightbox(currentStation.image)}
                             draggable={false}
                           />
-                          <p className="text-xs text-slate-500 mt-1">Appuyez pour agrandir (double-clic / molette pour zoomer)</p>
+                          <div className="text-xs text-slate-500 mt-1">Cliquez pour agrandir</div>
                         </div>
                       )}
                     </CardContent>
@@ -679,13 +631,37 @@ export default function RallyeULApp() {
 
         <div className="pt-6 text-center text-xs text-slate-500">Baker is such a beast!!.</div>
 
-        {/* Lightbox globale */}
-        {lightboxSrc && (
-          <Lightbox
-            src={lightboxSrc}
-            alt="Agrandissement de l’indice"
-            onClose={() => setLightboxSrc(null)}
-          />
+        {/* --- LIGHTBOX OVERLAY : zoom + molette + boutons (intégré depuis ton extrait) --- */}
+        {lightboxOpen && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex flex-col"
+            onClick={closeLightbox}
+          >
+            <div className="flex items-center justify-between p-3 text-white">
+              <div className="font-medium">Aperçu de l’indice</div>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); zoomOut();}}>-</Button>
+                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); resetZoom();}}>100%</Button>
+                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); zoomIn();}}>+</Button>
+                <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); closeLightbox();}}>Fermer</Button>
+              </div>
+            </div>
+            <div
+              className="flex-1 overflow-auto"
+              onClick={(e)=>e.stopPropagation()}
+              onWheel={onWheelZoom}
+            >
+              <div className="min-h-full min-w-full flex items-center justify-center p-6">
+                <img
+                  src={lightboxSrc || ""}
+                  alt="Agrandissement"
+                  className="select-none"
+                  style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
+                  draggable={false}
+                />
+              </div>
+            </div>
+          </div>
         )}
 
         {showDebug && (
