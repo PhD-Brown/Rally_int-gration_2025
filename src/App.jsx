@@ -95,7 +95,7 @@ function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onAppl
             <CardTitle>Panneau de Secours</CardTitle>
             <CardDescription>Forcez un état pour une équipe. Idéal pour reprendre après une erreur.</CardDescription>
           </CardHeader>
-        <CardContent className="space-y-4">
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Noms des membres</label>
               <Input
@@ -265,14 +265,24 @@ export default function RallyeULApp() {
 
     // Union des filleuls autorisés pour ces 2 parrains
     const allowed = mentorKeys.flatMap((k) => PAIRINGS[k] || []);
-    const allowedSet = new Set(allowed.map(normalizeName));
 
-    // Tous les membres saisis doivent appartenir à cette union
-    const extras = team.filter((x) => !allowedSet.has(normalizeName(x)));
-    if (extras.length) {
-      alert(
-        `Certains noms ne correspondent pas aux filleuls de ces 2 parrains :\nNon autorisés : ${extras.join(", ")}`
-      );
+    // Sets normalisés
+    const teamSetNorm = new Set(team.map(normalizeName));
+    const allowedMap = new Map();
+    for (const nm of allowed) allowedMap.set(normalizeName(nm), nm);
+    const allowedSetNorm = new Set(allowedMap.keys());
+
+    // 1) Refuser toute personne hors des 2 listes (message générique, pas de liste détaillée)
+    const hasExtras = team.some((x) => !allowedSetNorm.has(normalizeName(x)));
+    if (hasExtras) {
+      alert("Il manque des membres obligatoires pour ces parrains/marraines. Si l’erreur persiste, contactez moi ou Alex.");
+      return;
+    }
+
+    // 2) Exiger que TOUS les filleuls des 2 listes aient été saisis (message générique)
+    const missingExists = [...allowedSetNorm].some((norm) => !teamSetNorm.has(norm));
+    if (missingExists) {
+      alert("Il manque des membres obligatoires pour ces parrains/marraines. Si l’erreur persiste, contactez moi ou Alex.");
       return;
     }
 
@@ -408,7 +418,7 @@ export default function RallyeULApp() {
                     <div className="flex items-center gap-2">
                       <Input
                         type="text"
-                        placeholder="Ajouter un nom (ex: Clément Tremblay)"
+                        placeholder="Ajouter un nom (ex: Jérémie Hatier)"
                         value={mentorName}
                         onChange={(e) => setMentorName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && addMentor()}
