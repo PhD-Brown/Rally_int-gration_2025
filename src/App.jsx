@@ -271,7 +271,7 @@ export default function RallyeULApp() {
     const extras = team.filter((x) => !allowedSet.has(normalizeName(x)));
     if (extras.length) {
       alert(
-        `Certains noms ne correspondent pas aux filleuls de ces 2 parrains. Réessayez; si l’erreur persiste, appelez Alex ou Jérémie.`
+        `Certains noms ne correspondent pas aux filleuls de ces 2 parrains :\nNon autorisés : ${extras.join(", ")}`
       );
       return;
     }
@@ -553,7 +553,7 @@ export default function RallyeULApp() {
                       )}
                       {unlocked && (
                         <div className="flex items-center gap-2 text-emerald-700 text-sm">
-                          <CheckCircle2 className="h-4 w-4" /> Code correct! Vous pouvez passer à la prochaine étape.
+                          <CheckCircle2 className="h-4 w-4" /> Code exact! Vous pouvez passer à la prochaine étape.
                         </div>
                       )}
                     </CardContent>
