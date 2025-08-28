@@ -275,7 +275,7 @@ export default function RallyeULApp() {
     // 1) Refuser toute personne hors des 2 listes (message générique, pas de liste détaillée)
     const hasExtras = team.some((x) => !allowedSetNorm.has(normalizeName(x)));
     if (hasExtras) {
-      alert("Il manque des membres obligatoires pour ces parrains/marraines. Si l’erreur persiste, contactez moi ou Alex.");
+      alert("Il manque des membres obligatoires pour ces parrains/marraines. Si l’erreur persiste, appelez Alex ou Jérémie.");
       return;
     }
 
