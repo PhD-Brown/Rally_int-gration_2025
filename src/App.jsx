@@ -105,7 +105,7 @@ function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onAppl
                 value={team}
                 onChange={(e) => onTeamChange(e.target.value)}
               />
-              <p className="text-xs text-slate-500">Séparez les noms par une virgule.</p>
+              <p className="text-xs text-slate-500"></p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Repartir à l'indice</label>
@@ -440,7 +440,7 @@ export default function RallyeULApp() {
                         </Badge>
                       ) : (
                         <span className="text-xs text-slate-500">
-                          Entrez exactement 2 noms séparés par “&”, “,”, “+”, “/” ou “et”.
+                          Entrez exactement 2 noms.
                         </span>
                       )}
                     </div>
