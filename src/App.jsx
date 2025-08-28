@@ -59,7 +59,7 @@ const STATIONS = [
    ========================================== */
 const PAIRINGS = {
   "Clément Tremblay": ["Narayan Vigneault", "Marie Gervais", "Laurent Sirois", "Anakin Schroeder Tabah"],
-  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"],
+  "Frédérik Strach": ["Fredric Waler", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"],
   "Xavier Lemens": ["Alexandre Bourgeois", "Charles-Émile Roy", "Jules Hermel", "Matheus Bernardo-Cunha"],
   "Jean-Frédéric Savard": ["Nassim Naili", "Christophe Renaud-Plourde"],
   "Charles-Antoine Fournier": ["Hany Derriche", "Allyson Landry", "Charles-Étienne Hogue", "Théodore Nadeau"],
@@ -82,6 +82,11 @@ const parseLegacyMentors = (raw) =>
     .split(/(?:,|&|\+|\/| et )/i)
     .map((x) => x.trim())
     .filter(Boolean);
+
+// listes pour menus déroulants
+const sortNames = (arr) => arr.slice().sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+const MENTOR_OPTIONS = sortNames(Object.keys(PAIRINGS));
+const STUDENT_OPTIONS = sortNames(Array.from(new Set(Object.values(PAIRINGS).flat())));
 
 const STORAGE_KEY = "ul_rally_state_v1";
 
@@ -142,7 +147,6 @@ export default function RallyeULApp() {
   const [debugStationIdx, setDebugStationIdx] = useState("0");
 
   const [team, setTeam] = useState([]);
-  const [memberName, setMemberName] = useState("");
   const [startedAt, setStartedAt] = useState(null);
   const [seconds, setSeconds] = useState(0);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -150,17 +154,29 @@ export default function RallyeULApp() {
   const [unlocked, setUnlocked] = useState(false);
   const [showTestMode, setShowTestMode] = useState(false);
 
-  // Parrains/marraines: saisie un-à-un
-  const [mentorName, setMentorName] = useState("");
+  // Parrains/marraines: saisie un-à-un via menu déroulant
   const [mentors, setMentors] = useState([]);
+  const [selectedMentor, setSelectedMentor] = useState("");
 
+  // Étudiants: saisie un-à-un via menu déroulant
+  const [selectedStudent, setSelectedStudent] = useState("");
+
+  // ajout via dropdown (évite doublons)
   const addMentor = () => {
-    const name = mentorName.trim();
+    const name = (selectedMentor || "").trim();
     if (!name) return;
-    setMentors((m) => Array.from(new Set([...m, name]))); // évite doublons
-    setMentorName("");
+    setMentors((m) => Array.from(new Set([...m, name])));
+    setSelectedMentor("");
   };
   const removeMentor = (name) => setMentors((m) => m.filter((n) => n !== name));
+
+  const addMember = () => {
+    const name = (selectedStudent || "").trim();
+    if (!name) return;
+    setTeam((t) => Array.from(new Set([...t, name])));
+    setSelectedStudent("");
+  };
+  const removeMember = (name) => setTeam((t) => t.filter((n) => n !== name));
 
   // chargement / persistance
   useEffect(() => {
@@ -197,15 +213,6 @@ export default function RallyeULApp() {
   // ordre FIXE
   const currentStation = STATIONS[currentIdx];
   const progressPct = Math.round((currentIdx / STATIONS.length) * 100);
-
-  // équipe (étudiants) — saisie un-à-un
-  const addMember = () => {
-    const name = memberName.trim();
-    if (!name) return;
-    setTeam((t) => Array.from(new Set([...t, name])));
-    setMemberName("");
-  };
-  const removeMember = (name) => setTeam((t) => t.filter((n) => n !== name));
 
   const applyDebugState = () => {
     const teamNames = debugTeam.split(",").map((n) => n.trim()).filter(Boolean);
@@ -300,15 +307,12 @@ export default function RallyeULApp() {
     }
   };
 
-  // ✅ Correction : après la dernière station, on force l’affichage de la page finale
   const goNext = () => {
     if (currentIdx + 1 < STATIONS.length) {
       setCurrentIdx((i) => i + 1);
       setUnlocked(false);
       setCodeInput("");
     } else {
-      // On passe à "après la dernière" pour déclencher l’écran de fin
-      setCurrentIdx(STATIONS.length);
       setUnlocked(false);
       setCodeInput("");
     }
@@ -317,12 +321,14 @@ export default function RallyeULApp() {
   const resetAll = () => {
     if (!confirm("Réinitialiser complètement le parcours?")) return;
     setTeam([]);
-    setMemberName("");
     setStartedAt(null);
     setSeconds(0);
     setCurrentIdx(0);
     setCodeInput("");
     setUnlocked(false);
+    setMentors([]);
+    setSelectedMentor("");
+    setSelectedStudent("");
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -333,35 +339,9 @@ export default function RallyeULApp() {
     return hh === "00" ? `${mm}:${ss}` : `${hh}:${mm}:${ss}`;
   };
 
-  // --------- Page Finale (nouvelle) ----------
-  const FinalPage = () => (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-      <section className="min-h-[60vh] grid place-items-center">
-        <div className="text-center space-y-6">
-          <div className="text-4xl md:text-5xl font-bold tracking-tight">
-            🎉 Félicitations! 🎉
-          </div>
-          <p className="text-slate-700 text-base md:text-lg">
-            Vous avez complété le rallye. <br />
-            <span className="font-medium">Rendez-vous maintenant au pavillon Vachon (cafétéria)</span> pour la suite des activités.
-          </p>
-          <p className="text-slate-700 text-base md:text-lg">
-            Profitez du temps restant pour <span className="font-medium">compléter le Bingo</span> d’intégration!
-          </p>
-          <div className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-slate-800 bg-white shadow-sm">
-            <Clock className="h-4 w-4" />
-            <span className="text-sm">Temps total :</span>
-            <span className="font-semibold">{timeFmt(seconds)}</span>
-          </div>
-          <div className="pt-4">
-            <Button onClick={resetAll} variant="secondary" className="gap-2">
-              <RotateCcw className="h-4 w-4" /> Recommencer
-            </Button>
-          </div>
-        </div>
-      </section>
-    </motion.div>
-  );
+  // options filtrées pour éviter les doublons dans les sélections
+  const mentorChoices = MENTOR_OPTIONS.filter((m) => !mentors.includes(m));
+  const studentChoices = STUDENT_OPTIONS.filter((n) => !team.includes(n));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
@@ -412,12 +392,16 @@ export default function RallyeULApp() {
                   <div className="md:col-span-3 space-y-3">
                     <label className="text-sm font-medium">Membres de l'équipe</label>
                     <div className="flex items-center gap-2">
-                      <Input
-                        placeholder="Ajouter un nom (ex: Alex Baker)"
-                        value={memberName}
-                        onChange={(e) => setMemberName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addMember()}
-                      />
+                      <select
+                        className="flex h-10 w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                        value={selectedStudent}
+                        onChange={(e) => setSelectedStudent(e.target.value)}
+                      >
+                        <option value="">— Sélectionner un·e étudiant·e —</option>
+                        {studentChoices.map((n) => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
                       <Button onClick={addMember} className="gap-2">
                         <Plus className="h-4 w-4" /> Ajouter
                       </Button>
@@ -449,13 +433,16 @@ export default function RallyeULApp() {
                   <div className="md:col-span-3 space-y-3">
                     <label className="text-sm font-medium">Parrains/marraines</label>
                     <div className="flex items-center gap-2">
-                      <Input
-                        type="text"
-                        placeholder="Ajouter un nom (ex: Jérémie Hatier)"
-                        value={mentorName}
-                        onChange={(e) => setMentorName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addMentor()}
-                      />
+                      <select
+                        className="flex h-10 w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                        value={selectedMentor}
+                        onChange={(e) => setSelectedMentor(e.target.value)}
+                      >
+                        <option value="">— Sélectionner un parrain/marraine —</option>
+                        {mentorChoices.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
                       <Button onClick={addMentor} className="gap-2">
                         <Plus className="h-4 w-4" /> Ajouter
                       </Button>
@@ -498,27 +485,43 @@ export default function RallyeULApp() {
             </Card>
           </motion.div>
         ) : (
-          // ÉCRAN DE PARCOURS (ordre fixe) OU ÉCRAN FINAL
-          currentIdx >= STATIONS.length ? (
-            <FinalPage />
-          ) : (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Users className="h-4 w-4" />
-                  <span className="font-medium">Équipe:</span>
-                  <span>{team.join(", ")}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <MapPin className="h-4 w-4" />
-                  <span>Étape {currentIdx + 1} / {STATIONS.length}</span>
-                  <div className="w-24">
-                    <Progress value={progressPct} />
-                  </div>
+          // ÉCRAN DE PARCOURS (ordre fixe)
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <Users className="h-4 w-4" />
+                <span className="font-medium">Équipe:</span>
+                <span>{team.join(", ")}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <MapPin className="h-4 w-4" />
+                <span>Étape {currentIdx + 1} / {STATIONS.length}</span>
+                <div className="w-24">
+                  <Progress value={progressPct} />
                 </div>
               </div>
+            </div>
 
-              {currentStation && (
+            {currentIdx >= STATIONS.length ? (
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle>Parcours terminé 🎉</CardTitle>
+                  <CardDescription>
+                    Félicitations! Rendez-vous à la cafétéria du pavillon Vachon.
+                    S’il reste du temps, complétez le bingo! ⏱️ Temps: {timeFmt(seconds)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-slate-700">
+                  <div><span className="font-medium">Équipe:</span> {team.join(", ")}</div>
+                </CardContent>
+                <CardFooter>
+                  <Button onClick={resetAll} variant="secondary" className="gap-2">
+                    <RotateCcw className="h-4 w-4" /> Recommencer
+                  </Button>
+                </CardFooter>
+              </Card>
+            ) : (
+              currentStation && (
                 <div className="grid md:grid-cols-5 gap-4">
                   <Card className="md:col-span-3 shadow-sm">
                     <CardHeader>
@@ -593,9 +596,9 @@ export default function RallyeULApp() {
                     </CardFooter>
                   </Card>
                 </div>
-              )}
-            </motion.div>
-          )
+              )
+            )}
+          </motion.div>
         )}
 
         <div className="pt-6 text-center text-xs text-slate-500">Baker is such a beast!!.</div>
