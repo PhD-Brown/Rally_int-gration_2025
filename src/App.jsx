@@ -370,7 +370,7 @@ export default function RallyeULApp() {
                     <label className="text-sm font-medium">Membres de l'équipe</label>
                     <div className="flex items-center gap-2">
                       <Input
-                        placeholder="Ajouter un prénom (ex: Alex Baker)"
+                        placeholder="Ajouter un nom (ex: Alex Baker)"
                         value={memberName}
                         onChange={(e) => setMemberName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && addMember()}
@@ -408,7 +408,7 @@ export default function RallyeULApp() {
                     <div className="flex items-center gap-2">
                       <Input
                         type="text"
-                        placeholder="Ex: Clément Tremblay"
+                        placeholder="Ajouter un nom (ex: Clément Tremblay)"
                         value={mentorName}
                         onChange={(e) => setMentorName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && addMentor()}
