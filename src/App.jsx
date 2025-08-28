@@ -2,28 +2,14 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import {
-  Plus,
-  Trash2,
-  Users,
-  MapPin,
-  Lock,
-  Unlock,
-  CheckCircle2,
-  Clock,
-  ChevronRight,
-  RotateCcw,
+  Plus, Trash2, Users, MapPin, Lock, Unlock, CheckCircle2, Clock, ChevronRight, RotateCcw,
 } from "lucide-react";
 import { validateCode, registerTeam, pushProgress } from "@/lib/api";
 import Admin from "./Admin.jsx";
@@ -73,23 +59,86 @@ const PAIRINGS = {
   // Ajoute d'autres parrains au besoin…
 };
 
-/* ===========================
-   Points de départ “x”
-   (indices 0-based dans STATIONS)
-   =========================== */
-const START_INDICES = [1, 4, 14, 11, 14, 19]; // S02, S05, S15 (remplace/complète selon tes “x”)
-
-/* ------------ Helpers ------------ */
+// ---- Helpers ----
 const normalizeName = (s) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
-const parseLegacyMentors = (raw) =>
-  raw
-    .split(/(?:,|&|\+|\/| et )/i)
-    .map((x) => x.trim())
-    .filter(Boolean);
-
 const STORAGE_KEY = "ul_rally_state_v1";
+const START_CACHE_KEY = "ul_rally_start_assignments"; // teamKey -> index
+const CF_URL =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_CF_WORKER_URL) ||
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_CF_WORKER_URL) ||
+  "";
+
+/** Transforme une liste de noms saisis en clés **exactes** du dictionnaire PAIRINGS */
+function resolveMentorKeys(list) {
+  if (!Array.isArray(list) || list.length !== 2) return null;
+  const keys = Object.keys(PAIRINGS);
+  const found = list.map((n) =>
+    keys.find((k) => normalizeName(k) === normalizeName(n))
+  );
+  if (found.some((x) => !x)) return null;
+  if (new Set(found).size !== 2) return null;
+  return found;
+}
+
+/** Construit une clé d'équipe stable pour l’allocation Cloudflare */
+function makeTeamKey(members, mentorKeys) {
+  const m = [...members].map(normalizeName).sort();
+  const mk = [...mentorKeys].map(normalizeName).sort();
+  return `team:${mk.join("+")}::${m.join(",")}`;
+}
+
+/** Récupère (ou mémorise) l’index de départ via le Worker Cloudflare */
+async function getStartIndexForTeam(teamKey) {
+  // 1) Cache local pour éviter de reclamer après refresh
+  try {
+    const raw = localStorage.getItem(START_CACHE_KEY);
+    if (raw) {
+      const map = JSON.parse(raw);
+      if (map && typeof map[teamKey] === "number") return map[teamKey];
+    }
+  } catch {}
+
+  // 2) Appel Worker (idempotent d’abord, sinon fallback)
+  let idx = 0;
+  if (CF_URL) {
+    try {
+      // a) Essai mode idempotent (POST /nextStart {teamKey})
+      const r1 = await fetch(`${CF_URL}/nextStart`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ teamKey }),
+      });
+      if (r1.ok) {
+        const j = await r1.json();
+        if (typeof j.index === "number") idx = j.index;
+      } else {
+        // b) Fallback mode simple (GET /claim?count=N)
+        const r2 = await fetch(`${CF_URL}/claim?count=${STATIONS.length}`);
+        if (r2.ok) {
+          const j2 = await r2.json();
+          if (typeof j2.index === "number") idx = j2.index;
+          else if (typeof j2.startIndex === "number") idx = j2.startIndex;
+        }
+      }
+    } catch (e) {
+      console.warn("[start] worker unreachable, defaulting to 0", e);
+    }
+  } else {
+    console.warn("[start] Aucune URL de Worker détectée (VITE_CF_WORKER_URL / NEXT_PUBLIC_CF_WORKER_URL)");
+  }
+
+  // 3) Cache local
+  try {
+    const raw = localStorage.getItem(START_CACHE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    map[teamKey] = idx;
+    localStorage.setItem(START_CACHE_KEY, JSON.stringify(map));
+  } catch {}
+
+  return idx;
+}
 
 /* ---------- Panneau de débogage ---------- */
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
@@ -160,15 +209,6 @@ export default function RallyeULApp() {
   const [mentorName, setMentorName] = useState("");
   const [mentors, setMentors] = useState([]);
 
-  // Lightbox (zoom sur l’image d’indice)
-  const [lightboxSrc, setLightboxSrc] = useState(null);
-
-  // Compteur persistant pour distribuer les départs sur les “x”
-  const [startCounter, setStartCounter] = useState(() => {
-    const saved = localStorage.getItem("rally_nextStartCounter");
-    return saved ? parseInt(saved, 10) : 0;
-  });
-
   const addMentor = () => {
     const name = mentorName.trim();
     if (!name) return;
@@ -188,13 +228,6 @@ export default function RallyeULApp() {
         setCurrentIdx(s.currentIdx || 0);
         setMentors(s.mentors || []);
       } catch {}
-    }
-    // migration éventuelle de l’ancienne clé "mentor"
-    const legacy = localStorage.getItem("mentor");
-    if (legacy) {
-      const parsed = parseLegacyMentors(legacy).slice(0, 2);
-      if (parsed.length) setMentors((m) => (m.length ? m : parsed));
-      localStorage.removeItem("mentor");
     }
   }, []);
 
@@ -247,19 +280,7 @@ export default function RallyeULApp() {
     }
   };
 
-  // Conversion des 2 noms saisis → clés exactes de PAIRINGS
-  const findMentorKeys = (list) => {
-    if (!Array.isArray(list) || list.length !== 2) return null;
-    const keys = Object.keys(PAIRINGS);
-    const found = list.map((n) =>
-      keys.find((k) => normalizeName(k) === normalizeName(n))
-    );
-    if (found.some((x) => !x)) return null;
-    if (new Set(found).size !== 2) return null;
-    return found;
-  };
-
-  // ---- Validation au démarrage + départ sur “x” ----
+  // ---- Validation au démarrage + allocation de l’indice de départ via Worker ----
   const startRun = async () => {
     if (team.length === 0) {
       alert("Il manque des membres d'équipe.");
@@ -270,11 +291,10 @@ export default function RallyeULApp() {
       return;
     }
 
-    const mentorKeys = findMentorKeys(mentors);
+    // Conversion des 2 noms saisis → clés exactes de PAIRINGS
+    const mentorKeys = resolveMentorKeys(mentors);
     if (!mentorKeys) {
-      alert(
-        "Certains des noms de parrains/marraines sont incorrects. Réessayez; si l’erreur persiste, appelez Alex ou Jérémie."
-      );
+      alert("Certains des noms de parrains/marraines sont incorrects. Réessayez; si l’erreur persiste, appelez Alex ou Jérémie.");
       return;
     }
 
@@ -301,23 +321,20 @@ export default function RallyeULApp() {
       return;
     }
 
-    // Départ calé sur le prochain “x”
-    const startIndex =
-      START_INDICES.length > 0
-        ? START_INDICES[startCounter % START_INDICES.length]
-        : 0;
+    // --- Allocation de l’indice de départ (premier X, 2e X, ...) ---
+    // teamKey = dépend de l'équipe + parrains pour rester stable entre appareils
+    const teamKey = makeTeamKey(team, mentorKeys);
 
-    setCurrentIdx(startIndex);
+    let startIndex = 0;
+    try {
+      startIndex = await getStartIndexForTeam(teamKey);
+    } catch (e) {
+      console.warn("[start] getStartIndexForTeam failed, defaulting to 0", e);
+      startIndex = 0;
+    }
 
-    // Incrémenter le compteur pour la prochaine équipe
-    setStartCounter((c) => {
-      const next = c + 1;
-      localStorage.setItem("rally_nextStartCounter", String(next));
-      return next;
-    });
-
-    // OK : démarrer
     setStartedAt(Date.now());
+    setCurrentIdx(startIndex);
     setUnlocked(false);
     setCodeInput("");
 
@@ -335,8 +352,11 @@ export default function RallyeULApp() {
       setUnlocked(false);
       setCodeInput("");
     } else {
+      // Fin du 20e indice : message sobre pour se rendre à la cafétéria du pavillon Vachon
       setUnlocked(false);
       setCodeInput("");
+      setCurrentIdx(STATIONS.length); // force l’écran de fin
+      alert("Bravo! Rendez-vous à la cafétéria du pavillon Vachon.");
     }
   };
 
@@ -349,9 +369,8 @@ export default function RallyeULApp() {
     setCurrentIdx(0);
     setCodeInput("");
     setUnlocked(false);
-    setMentors([]);
-    setMentorName("");
     localStorage.removeItem(STORAGE_KEY);
+    // on ne supprime pas START_CACHE_KEY pour préserver l’allocation si rafraîchissement
   };
 
   const timeFmt = (s) => {
@@ -361,26 +380,15 @@ export default function RallyeULApp() {
     return hh === "00" ? `${mm}:${ss}` : `${hh}:${mm}:${ss}`;
   };
 
-  // Fermer la lightbox avec Échap
-  useEffect(() => {
-    const onKey = (e) => e.key === "Escape" && setLightboxSrc(null);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
       <header className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-emerald-600/90 grid place-items-center text-white font-bold">
-              UL
-            </div>
+            <div className="h-9 w-9 rounded-xl bg-emerald-600/90 grid place-items-center text-white font-bold">UL</div>
             <div>
               <div className="text-lg font-semibold">Rallye sur le campus</div>
-              <div className="text-xs text-slate-500">
-                Rallye d'intégrations en physique — Université Laval
-              </div>
+              <div className="text-xs text-slate-500">Rallye d'intégrations en physique — Université Laval</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -432,11 +440,7 @@ export default function RallyeULApp() {
                         <span className="text-xs text-slate-500">Aucun membre pour l'instant.</span>
                       )}
                       {team.map((name) => (
-                        <Badge
-                          key={name}
-                          variant="secondary"
-                          className="px-2 py-1 text-sm flex items-center gap-2"
-                        >
+                        <Badge key={name} variant="secondary" className="px-2 py-1 text-sm flex items-center gap-2">
                           {name}
                           <button
                             aria-label={`Retirer ${name}`}
@@ -471,11 +475,7 @@ export default function RallyeULApp() {
                         <span className="text-xs text-slate-500">Aucun parrain/marraine pour l'instant.</span>
                       )}
                       {mentors.map((name) => (
-                        <Badge
-                          key={name}
-                          variant="secondary"
-                          className="px-2 py-1 text-sm flex items-center gap-2"
-                        >
+                        <Badge key={name} variant="secondary" className="px-2 py-1 text-sm flex items-center gap-2">
                           {name}
                           <button
                             aria-label={`Retirer ${name}`}
@@ -502,25 +502,6 @@ export default function RallyeULApp() {
               </CardContent>
             </Card>
           </motion.div>
-        ) : currentIdx >= STATIONS.length ? (
-          // Page finale (après la 20e station)
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Parcours terminé 🎉</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-slate-700 space-y-2">
-              <div><span className="font-medium">Équipe :</span> {team.join(", ")}</div>
-              <div><span className="font-medium">Durée :</span> {timeFmt(seconds)}</div>
-              <p className="mt-2">
-                Merci d’avoir participé ! Rendez-vous à la <strong>cafétéria du pavillon Vachon</strong>.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={resetAll} variant="secondary" className="gap-2">
-                <RotateCcw className="h-4 w-4" /> Recommencer
-              </Button>
-            </CardFooter>
-          </Card>
         ) : (
           // ÉCRAN DE PARCOURS (ordre fixe)
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -539,81 +520,100 @@ export default function RallyeULApp() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-5 gap-4">
-              <Card className="md:col-span-3 shadow-sm">
+            {currentIdx >= STATIONS.length ? (
+              <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    {currentStation.name}
-                  </CardTitle>
-                  <CardDescription>
-                    Indice #{currentIdx + 1} — suivez les consignes ci-dessous.
-                  </CardDescription>
+                  <CardTitle>Parcours terminé 🎉</CardTitle>
+                  <CardDescription>Bravo! Rendez-vous à la cafétéria du pavillon Vachon.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
-                    <p className="leading-relaxed">
-                      <span className="font-semibold">Indice:</span> {currentStation.clue}
-                    </p>
-                  </div>
-
-                  {currentStation.image && (
-                    <div className="mt-4">
-                      <img
-                        src={currentStation.image}
-                        alt="Image d'indice"
-                        className="rounded-xl w-full border cursor-zoom-in"
-                        onClick={() => setLightboxSrc(currentStation.image)}
-                      />
-                    </div>
-                  )}
+                <CardContent className="space-y-2 text-sm text-slate-700">
+                  <div><span className="font-medium">Équipe:</span> {team.join(", ")}</div>
+                  <div><span className="font-medium">Durée:</span> {timeFmt(seconds)}</div>
                 </CardContent>
-              </Card>
-
-              <Card className="md:col-span-2 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    Validation du code{" "}
-                    {showTestMode && (
-                      <Badge variant="secondary" className="ml-2">
-                        Attendu: {currentStation.code}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription>
-                    Saisissez le code affiché à cette station pour déverrouiller la suivante.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Input
-                    placeholder="Entrez le code ici"
-                    value={codeInput}
-                    onChange={(e) => setCodeInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && validateAndUnlock()}
-                    autoFocus
-                  />
-                  {!unlocked ? (
-                    <Button className="w-full gap-2" onClick={validateAndUnlock}>
-                      <Lock className="h-4 w-4" /> Valider le code
-                    </Button>
-                  ) : (
-                    <Button className="w-full gap-2" onClick={goNext}>
-                      <Unlock className="h-4 w-4" /> Déverrouillé — étape suivante
-                    </Button>
-                  )}
-                  {unlocked && (
-                    <div className="flex items-center gap-2 text-emerald-700 text-sm">
-                      <CheckCircle2 className="h-4 w-4" /> Code exact! Vous pouvez passer à la prochaine étape.
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter className="justify-between">
-                  <div className="text-xs text-slate-500">
-                    Progression: {currentIdx}/{STATIONS.length}
-                  </div>
+                <CardFooter>
+                  <Button onClick={resetAll} variant="secondary" className="gap-2">
+                    <RotateCcw className="h-4 w-4" /> Recommencer
+                  </Button>
                 </CardFooter>
               </Card>
-            </div>
+            ) : (
+              currentStation && (
+                <div className="grid md:grid-cols-5 gap-4">
+                  <Card className="md:col-span-3 shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5" />
+                        {currentStation.name}
+                      </CardTitle>
+                      <CardDescription>
+                        Indice #{currentIdx + 1} — suivez les consignes ci-dessous.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
+                        <p className="leading-relaxed">
+                          <span className="font-semibold">Indice:</span> {currentStation.clue}
+                        </p>
+                      </div>
+
+                      {currentStation.image && (
+                        <div className="mt-4">
+                          <img
+                            src={currentStation.image}
+                            alt="Image d'indice"
+                            className="rounded-xl w-full max-h-80 object-cover border"
+                          />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="md:col-span-2 shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        Validation du code{" "}
+                        {showTestMode && (
+                          <Badge variant="secondary" className="ml-2">
+                            Attendu: {currentStation.code}
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      <CardDescription>
+                        Saisissez le code affiché à cette station pour déverrouiller la suivante.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Input
+                        placeholder="Entrez le code ici"
+                        value={codeInput}
+                        onChange={(e) => setCodeInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && validateAndUnlock()}
+                        autoFocus
+                      />
+                      {!unlocked ? (
+                        <Button className="w-full gap-2" onClick={validateAndUnlock}>
+                          <Lock className="h-4 w-4" /> Valider le code
+                        </Button>
+                      ) : (
+                        <Button className="w-full gap-2" onClick={goNext}>
+                          <Unlock className="h-4 w-4" /> Déverrouillé — étape suivante
+                        </Button>
+                      )}
+                      {unlocked && (
+                        <div className="flex items-center gap-2 text-emerald-700 text-sm">
+                          <CheckCircle2 className="h-4 w-4" /> Code exact! Vous pouvez passer à la prochaine étape.
+                        </div>
+                      )}
+                    </CardContent>
+                    <CardFooter className="justify-between">
+                      <div className="text-xs text-slate-500">
+                        Progression: {currentIdx}/{STATIONS.length}
+                      </div>
+                    </CardFooter>
+                  </Card>
+                </div>
+              )
+            )}
           </motion.div>
         )}
 
@@ -628,20 +628,6 @@ export default function RallyeULApp() {
             onApply={applyDebugState}
             onClose={() => setShowDebug(false)}
           />
-        )}
-
-        {/* Lightbox plein écran pour zoomer l’image d’indice */}
-        {lightboxSrc && (
-          <div
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setLightboxSrc(null)}
-          >
-            <img
-              src={lightboxSrc}
-              alt="Agrandissement"
-              className="max-w-[95vw] max-h-[95vh] rounded-xl"
-            />
-          </div>
         )}
       </main>
     </div>
