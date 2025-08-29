@@ -36,7 +36,7 @@ const STATIONS = [
   { id: "S02", name: "Local de l'ADÉPUL", clue: "Trouvez votre local d'asso!", code: "LaFlûteÀSixSchtroumpfs", image: "/indices/adepul.jpg" },
   { id: "S03", name: "Bureau du directeur de programme", clue: "Zoom au-delà de la longuer de Planck", code: "SpirouÀNewYork", image: "/indices/porte_cote.jpg" },
   { id: "S04", name: 'Babillard "Festijeu"', clue: "Revenez sur vos pas!", code: "LesDaltonsSeRachètent", image: "/indices/affiche_festijeux.jpg" },
-  { id: "S05", name: "Salle de cours", clue: "Autant se muscler les cuisses tout de suite", code: "LeMarsupilami", image: "/indices/salle_de_classe.jpg" },
+  { id: "S05", name: "Salle de cours - VCH28XX", clue: "Autant se muscler les cuisses tout de suite", code: "LeMarsupilami", image: "/indices/salle_de_classe.jpg" },
   { id: "S06", name: "Lab d'info", clue: "[Jack et le haricot magique]^[-1]", code: "LeTrésorDeRackhamLeRouge", image: "/indices/tableau_nerds.jpg" },
   { id: "S07", name: "En direction du COPL", clue: "Les corridors du Vachon sont bien longs", code: "LaSerpeDOr", image: "/indices/corridor_copl.jpg" },
   { id: "S08", name: "Bibliothèque scientifique", clue: "Juste en face du département", code: "LeCasLagaffe", image: "/indices/bibli_vachon.jpg" },
@@ -99,7 +99,7 @@ const compareByLastName = (a, b) => {
 const ALL_MENTORS = Object.keys(PAIRINGS).sort(compareByLastName);
 const ALL_STUDENTS = Array.from(new Set(Object.values(PAIRINGS).flat())).sort(compareByLastName);
 
-// 🔐 Nouvelle clé de persistance pour éviter d’anciens états incompatibles
+// 🔐 Clé de persistance (version 2)
 const STORAGE_KEY = "ul_rally_state_v2";
 
 // --- Démarrages par duo de parrains/marraines ---
@@ -113,6 +113,9 @@ const START_AT_BY_PAIR = new Map([
   [pairKey("Mélissa St-Pierre", "Jérémie Hatier"), 14],    // indice 15
   [pairKey("Alex Baker", "Louis Grégoire"), 18],           // indice 19
 ]);
+
+// 📌 Bingo (même dossier que les autres indices)
+const BINGO_IMG = "/indices/bingo.jpg";
 
 /* ---------- Panneau de débogage ---------- */
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
@@ -415,7 +418,7 @@ export default function RallyeULApp() {
       <CardHeader>
         <CardTitle>Félicitations 🎉</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm text-slate-700">
+      <CardContent className="space-y-4 text-sm text-slate-700">
         <p className="leading-relaxed">
           Félicitations, vous avez complété le rallye en{" "}
           <span className="font-semibold">{timeFmt(finishedSeconds ?? seconds)}</span>!{" "}
@@ -423,6 +426,18 @@ export default function RallyeULApp() {
           <span className="font-semibold">17h30</span>. En attendant, complétez le{" "}
           <span className="font-semibold">bingo</span>: ça vaut beaucoup de points pour demain!
         </p>
+
+        {/* Bingo en grand et zoomable */}
+        <div className="mt-2">
+          <img
+            src={BINGO_IMG}
+            alt="Bingo"
+            className="rounded-xl w-full object-contain border cursor-zoom-in"
+            onClick={() => openLightbox(BINGO_IMG)}
+            draggable={false}
+          />
+          <div className="text-xs text-slate-500 mt-1">Cliquez pour agrandir</div>
+        </div>
       </CardContent>
       <CardFooter>
         <Button onClick={resetAll} variant="secondary" className="gap-2">
@@ -599,86 +614,104 @@ export default function RallyeULApp() {
             {isFinished ? (
               <FinishedCard />
             ) : (
-              currentStation && (
-                <div className="grid md:grid-cols-5 gap-4">
-                  <Card className="md:col-span-3 shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <MapPin className="h-5 w-5" />
-                        {currentStation.name}
-                      </CardTitle>
-                      <CardDescription>
-                        Indice #{((startIndex + currentIdx) % STATIONS.length) + 1} — suivez les consignes ci-dessous.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
-                        <p className="leading-relaxed">
-                          <span className="font-semibold">Indice:</span> {currentStation.clue}
-                        </p>
-                      </div>
+              <div className="grid md:grid-cols-5 gap-4">
+                {/* Indice courant */}
+                <Card className="md:col-span-3 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      {currentStation?.name}
+                    </CardTitle>
+                    <CardDescription>
+                      Indice #{((startIndex + currentIdx) % STATIONS.length) + 1} — suivez les consignes ci-dessous.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
+                      <p className="leading-relaxed">
+                        <span className="font-semibold">Indice:</span> {currentStation?.clue}
+                      </p>
+                    </div>
 
-                      {currentStation.image && (
-                        <div className="mt-4">
-                          {/* Image non restreinte + ouverture du lightbox (zoom) */}
-                          <img
-                            src={currentStation.image}
-                            alt="Image d'indice"
-                            className="rounded-xl w-full object-contain border cursor-zoom-in"
-                            onClick={() => openLightbox(currentStation.image)}
-                            draggable={false}
-                          />
-                          <div className="text-xs text-slate-500 mt-1">Cliquez pour agrandir</div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card className="md:col-span-2 shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        Validation du code{" "}
-                        {showTestMode && (
-                          <Badge variant="secondary" className="ml-2">
-                            Attendu: {currentStation.code}
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription>
-                        Saisissez le code affiché à cette station pour déverrouiller la suivante.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <Input
-                        placeholder="Entrez le code ici"
-                        value={codeInput}
-                        onChange={(e) => setCodeInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && validateAndUnlock()}
-                        autoFocus
-                      />
-                      {!unlocked ? (
-                        <Button className="w-full gap-2" onClick={validateAndUnlock}>
-                          <Lock className="h-4 w-4" /> Valider le code
-                        </Button>
-                      ) : (
-                        <Button className="w-full gap-2" onClick={goNext}>
-                          <Unlock className="h-4 w-4" /> Déverrouillé — étape suivante
-                        </Button>
-                      )}
-                      {unlocked && (
-                        <div className="flex items-center gap-2 text-emerald-700 text-sm">
-                          <CheckCircle2 className="h-4 w-4" /> Code exact! Vous pouvez passer à la prochaine étape.
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter className="justify-between">
-                      <div className="text-xs text-slate-500">
-                        Progression: {Math.min(currentIdx, STATIONS.length)}/{STATIONS.length}
+                    {currentStation?.image && (
+                      <div className="mt-4">
+                        {/* Image indice zoomable */}
+                        <img
+                          src={currentStation.image}
+                          alt="Image d'indice"
+                          className="rounded-xl w-full object-contain border cursor-zoom-in"
+                          onClick={() => openLightbox(currentStation.image)}
+                          draggable={false}
+                        />
+                        <div className="text-xs text-slate-500 mt-1">Cliquez pour agrandir</div>
                       </div>
-                    </CardFooter>
-                  </Card>
-                </div>
-              )
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Validation */}
+                <Card className="md:col-span-2 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      Validation du code{" "}
+                      {showTestMode && (
+                        <Badge variant="secondary" className="ml-2">
+                          Attendu: {currentStation?.code}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      Saisissez le code affiché à cette station pour déverrouiller la suivante.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Input
+                      placeholder="Entrez le code ici"
+                      value={codeInput}
+                      onChange={(e) => setCodeInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && validateAndUnlock()}
+                      autoFocus
+                    />
+                    {!unlocked ? (
+                      <Button className="w-full gap-2" onClick={validateAndUnlock}>
+                        <Lock className="h-4 w-4" /> Valider le code
+                      </Button>
+                    ) : (
+                      <Button className="w-full gap-2" onClick={goNext}>
+                        <Unlock className="h-4 w-4" /> Déverrouillé — étape suivante
+                      </Button>
+                    )}
+                    {unlocked && (
+                      <div className="flex items-center gap-2 text-emerald-700 text-sm">
+                        <CheckCircle2 className="h-4 w-4" /> Code exact! Vous pouvez passer à la prochaine étape.
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter className="justify-between">
+                    <div className="text-xs text-slate-500">
+                      Progression: {Math.min(currentIdx, STATIONS.length)}/{STATIONS.length}
+                    </div>
+                  </CardFooter>
+                </Card>
+
+                {/* Bingo — toujours visible pendant le parcours */}
+                <Card className="md:col-span-2 shadow-sm">
+                  <CardHeader>
+                    <CardTitle>Bingo (épreuve parallèle)</CardTitle>
+                    <CardDescription>Complétez-le pour gagner beaucoup de points!</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <img
+                      src={BINGO_IMG}
+                      alt="Bingo"
+                      className="rounded-xl w-full object-contain border cursor-zoom-in"
+                      onClick={() => openLightbox(BINGO_IMG)}
+                      draggable={false}
+                    />
+                    <div className="text-xs text-slate-500 mt-1">Cliquez pour agrandir</div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </motion.div>
         )}
@@ -692,7 +725,7 @@ export default function RallyeULApp() {
             onClick={closeLightbox}
           >
             <div className="flex items-center justify-between p-3 text-white">
-              <div className="font-medium">Aperçu de l’indice</div>
+              <div className="font-medium">Aperçu</div>
               <div className="flex gap-2">
                 <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); zoomOut();}}>-</Button>
                 <Button variant="secondary" size="sm" onClick={(e)=>{e.stopPropagation(); resetZoom();}}>100%</Button>
