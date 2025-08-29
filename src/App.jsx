@@ -60,7 +60,7 @@ const STATIONS = [
    ========================================== */
 const PAIRINGS = {
   "Clément Tremblay": ["Narayan Vigneault", "Marie Gervais", "Laurent Sirois", "Anakin Schroeder Tabah"],
-  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"], // Walker (corrigé)
+  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"],
   "Xavier Lemens": ["Alexandre Bourgeois", "Charles-Émile Roy", "Jules Hermel", "Matheus Bernardo-Cunha"],
   "Jean-Frédéric Savard": ["Nassim Naili", "Christophe Renaud-Plourde"],
   "Charles-Antoine Fournier": ["Hany Derriche", "Allyson Landry", "Charles-Étienne Hogue", "Théodore Nadeau"],
@@ -100,6 +100,18 @@ const ALL_MENTORS = Object.keys(PAIRINGS).sort(compareByLastName);
 const ALL_STUDENTS = Array.from(new Set(Object.values(PAIRINGS).flat())).sort(compareByLastName);
 
 const STORAGE_KEY = "ul_rally_state_v1";
+
+// --- Démarrages par duo de parrains/marraines ---
+const pairKey = (a, b) => [a, b].sort().join("|");
+/* Interprétation: "indice 2" = 2e étape → index 1 (0-based) */
+const START_AT_BY_PAIR = new Map([
+  [pairKey("Clément Tremblay", "Frédérik Strach"), 1],     // indice 2
+  [pairKey("Xavier Lemens", "Jean-Frédéric Savard"), 4],   // indice 5
+  [pairKey("Charles-Antoine Fournier", "Anouk Plouffe"), 8], // indice 9
+  [pairKey("Félix Dubé", "Arthur Légaré"), 11],            // indice 12
+  [pairKey("Mélissa St-Pierre", "Jérémie Hatier"), 14],    // indice 15
+  [pairKey("Alex Baker", "Louis Grégoire"), 18],           // indice 19
+]);
 
 /* ---------- Panneau de débogage ---------- */
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
@@ -160,6 +172,7 @@ export default function RallyeULApp() {
   const [team, setTeam] = useState([]);
   const [startedAt, setStartedAt] = useState(null);
   const [seconds, setSeconds] = useState(0);
+  const [finishedSeconds, setFinishedSeconds] = useState(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [codeInput, setCodeInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
@@ -172,7 +185,7 @@ export default function RallyeULApp() {
   // Parrains/marraines — exactement 2 requis
   const [mentors, setMentors] = useState([]);
 
-  // --- LIGHTBOX issu de ton extrait (zoom + overlay plein écran) ---
+  // --- LIGHTBOX (zoom + overlay plein écran) ---
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [zoom, setZoom] = useState(1);
@@ -245,6 +258,7 @@ export default function RallyeULApp() {
     setTeam(teamNames);
     setCurrentIdx(stationIndex);
     setStartedAt(Date.now());
+    setFinishedSeconds(null); // reset fin
     setUnlocked(false);
     setCodeInput("");
     setShowDebug(false);
@@ -312,9 +326,11 @@ export default function RallyeULApp() {
       return;
     }
 
-    // OK : démarrer
+    // OK : démarrer (avec index de départ spécifique au duo)
+    const startIndex = START_AT_BY_PAIR.get(pairKey(mentorKeys[0], mentorKeys[1])) ?? 0;
+    setFinishedSeconds(null);
     setStartedAt(Date.now());
-    setCurrentIdx(0);
+    setCurrentIdx(startIndex);
     setUnlocked(false);
     setCodeInput("");
 
@@ -327,20 +343,23 @@ export default function RallyeULApp() {
   };
 
   const goNext = () => {
-    if (currentIdx + 1 < STATIONS.length) {
-      setCurrentIdx((i) => i + 1);
-      setUnlocked(false);
-      setCodeInput("");
-    } else {
-      setUnlocked(false);
-      setCodeInput("");
-    }
+    setCurrentIdx((i) => {
+      const next = i + 1;
+      if (next >= STATIONS.length) {
+        setFinishedSeconds(seconds); // fige le temps à la fin
+        setStartedAt(null);          // stoppe le timer
+      }
+      return next;
+    });
+    setUnlocked(false);
+    setCodeInput("");
   };
 
   const resetAll = () => {
     if (!confirm("Réinitialiser complètement le parcours?")) return;
     setTeam([]);
     setStartedAt(null);
+    setFinishedSeconds(null);
     setSeconds(0);
     setCurrentIdx(0);
     setCodeInput("");
@@ -363,15 +382,15 @@ export default function RallyeULApp() {
     <Card className="shadow-sm">
       <CardHeader>
         <CardTitle>Félicitations 🎉</CardTitle>
-        <CardDescription>Rallye complété!</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-slate-700">
-        <div><span className="font-medium">Équipe:</span> {team.join(", ")}</div>
-        <div><span className="font-medium">Temps total:</span> {timeFmt(seconds)}</div>
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
-          Rendez-vous à la <span className="font-semibold">cafétéria du pavillon Vachon</span>.  
-          Profitez du temps restant pour compléter le <span className="font-semibold">bingo</span>!
-        </div>
+        <p className="leading-relaxed">
+          Félicitations, vous avez complété le rallye en{" "}
+          <span className="font-semibold">{timeFmt(finishedSeconds ?? seconds)}</span>!{" "}
+          Rendez-vous à la <span className="font-semibold">cafétéria du Vachon</span> vers{" "}
+          <span className="font-semibold">17h30</span>. En attendant, complétez le{" "}
+          <span className="font-semibold">bingo</span>: ça vaut beaucoup de points pour demain!
+        </p>
       </CardContent>
       <CardFooter>
         <Button onClick={resetAll} variant="secondary" className="gap-2">
@@ -399,7 +418,7 @@ export default function RallyeULApp() {
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600">
               <Clock className="h-4 w-4" />
-              <span>{startedAt ? timeFmt(seconds) : "00:00"}</span>
+              <span>{startedAt ? timeFmt(seconds) : finishedSeconds != null ? timeFmt(finishedSeconds) : "00:00"}</span>
             </div>
             <div className="w-28 hidden md:block">
               <Progress value={progressPct} />
@@ -629,9 +648,9 @@ export default function RallyeULApp() {
           </motion.div>
         )}
 
-        <div className="pt-6 text-center text-xs text-slate-500">Baker is such a beast!</div>
+        <div className="pt-6 text-center text-xs text-slate-500">Baker is a beast!</div>
 
-        {/* --- LIGHTBOX OVERLAY : zoom + molette + boutons (intégré depuis ton extrait) --- */}
+        {/* --- LIGHTBOX OVERLAY : zoom + molette + boutons --- */}
         {lightboxOpen && (
           <div
             className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex flex-col"
