@@ -423,7 +423,7 @@ export default function RallyeULApp() {
           Félicitations, vous avez complété le rallye en{" "}
           <span className="font-semibold">{timeFmt(finishedSeconds ?? seconds)}</span>!{" "}
           Rendez-vous à la <span className="font-semibold">cafétéria du Vachon</span> vers{" "}
-          <span className="font-semibold">17h30</span>. En attendant, complétez le{" "}
+          <span className="font-semibold">17h30</span>. En attendant, complétez le bingo{" "}
           <span className="font-semibold"></span>: ça vaut beaucoup de points pour demain!
         </p>
 
