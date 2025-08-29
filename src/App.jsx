@@ -60,7 +60,7 @@ const STATIONS = [
    ========================================== */
 const PAIRINGS = {
   "Clément Tremblay": ["Narayan Vigneault", "Marie Gervais", "Laurent Sirois", "Anakin Schroeder Tabah"],
-  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"],
+  "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"], // Walker (corrigé)
   "Xavier Lemens": ["Alexandre Bourgeois", "Charles-Émile Roy", "Jules Hermel", "Matheus Bernardo-Cunha"],
   "Jean-Frédéric Savard": ["Nassim Naili", "Christophe Renaud-Plourde"],
   "Charles-Antoine Fournier": ["Hany Derriche", "Allyson Landry", "Charles-Étienne Hogue", "Théodore Nadeau"],
@@ -99,7 +99,8 @@ const compareByLastName = (a, b) => {
 const ALL_MENTORS = Object.keys(PAIRINGS).sort(compareByLastName);
 const ALL_STUDENTS = Array.from(new Set(Object.values(PAIRINGS).flat())).sort(compareByLastName);
 
-const STORAGE_KEY = "ul_rally_state_v1";
+// 🔐 Nouvelle clé de persistance pour éviter d’anciens états incompatibles
+const STORAGE_KEY = "ul_rally_state_v2";
 
 // --- Démarrages par duo de parrains/marraines ---
 const pairKey = (a, b) => [a, b].sort().join("|");
@@ -173,7 +174,13 @@ export default function RallyeULApp() {
   const [startedAt, setStartedAt] = useState(null);
   const [seconds, setSeconds] = useState(0);
   const [finishedSeconds, setFinishedSeconds] = useState(null);
+
+  // currentIdx = numéro d'étape relative (0 → 19). Après 19, terminé (20 étapes faites).
   const [currentIdx, setCurrentIdx] = useState(0);
+
+  // startIndex = indice absolu (0 → 19) à partir duquel l'équipe commence son parcours circulaire
+  const [startIndex, setStartIndex] = useState(0);
+
   const [codeInput, setCodeInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [showTestMode, setShowTestMode] = useState(false);
@@ -205,19 +212,34 @@ export default function RallyeULApp() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
-        const s = JSON.parse(raw);
-        setTeam(s.team || []);
-        setStartedAt(s.startedAt || null);
-        setCurrentIdx(s.currentIdx || 0);
-        setMentors(s.mentors || []);
-      } catch {}
+        const s = JSON.parse(raw) || {};
+        setTeam(Array.isArray(s.team) ? s.team : []);
+        setMentors(Array.isArray(s.mentors) ? s.mentors.slice(0, 2) : []);
+
+        const sa = typeof s.startedAt === "number" && Number.isFinite(s.startedAt) ? s.startedAt : null;
+        setStartedAt(sa);
+
+        const ciRaw = typeof s.currentIdx === "number" ? s.currentIdx : 0;
+        const siRaw = typeof s.startIndex === "number" ? s.startIndex : 0;
+
+        const ci = Math.max(0, Math.min(ciRaw, STATIONS.length));            // 0..20
+        const si = Math.max(0, Math.min(siRaw, STATIONS.length - 1));        // 0..19
+        setCurrentIdx(ci);
+        setStartIndex(si);
+      } catch {
+        // ignore parse errors
+      }
     }
   }, []);
 
   useEffect(() => {
-    const state = { team, startedAt, currentIdx, mentors };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [team, startedAt, currentIdx, mentors]);
+    const state = { team, startedAt, currentIdx, mentors, startIndex };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // storage full / private mode — ignorer
+    }
+  }, [team, startedAt, currentIdx, mentors, startIndex]);
 
   useEffect(() => {
     if (!startedAt) return;
@@ -225,9 +247,13 @@ export default function RallyeULApp() {
     return () => clearInterval(id);
   }, [startedAt]);
 
-  // ordre FIXE
-  const currentStation = STATIONS[currentIdx];
-  const progressPct = Math.round((currentIdx / STATIONS.length) * 100);
+  // Étape courante (relative) → index absolu circulaire
+  const isFinished = currentIdx >= STATIONS.length; // 20 étapes complétées
+  const absoluteIdx = isFinished ? null : (startIndex + currentIdx) % STATIONS.length;
+  const currentStation = isFinished ? null : STATIONS[absoluteIdx];
+
+  const progressPct = Math.round((Math.min(currentIdx, STATIONS.length) / STATIONS.length) * 100);
+  const stepDisplay = isFinished ? `${STATIONS.length}/${STATIONS.length}` : `${currentIdx + 1} / ${STATIONS.length}`;
 
   // équipe (étudiants) — via menu déroulant
   const addMember = () => {
@@ -256,7 +282,8 @@ export default function RallyeULApp() {
     const stationIndex = parseInt(debugStationIdx, 10);
 
     setTeam(teamNames);
-    setCurrentIdx(stationIndex);
+    setStartIndex(Math.max(0, Math.min(stationIndex, STATIONS.length - 1))); // départ absolu
+    setCurrentIdx(0);            // étape relative = 0
     setStartedAt(Date.now());
     setFinishedSeconds(null); // reset fin
     setUnlocked(false);
@@ -326,11 +353,12 @@ export default function RallyeULApp() {
       return;
     }
 
-    // OK : démarrer (avec index de départ spécifique au duo)
-    const startIndex = START_AT_BY_PAIR.get(pairKey(mentorKeys[0], mentorKeys[1])) ?? 0;
+    // OK : démarrer (avec point de départ absolu spécifique au duo)
+    const startAbs = START_AT_BY_PAIR.get(pairKey(mentorKeys[0], mentorKeys[1])) ?? 0;
+    setStartIndex(startAbs);       // point de départ absolu
+    setCurrentIdx(0);              // étape relative = 0 (1/20)
     setFinishedSeconds(null);
     setStartedAt(Date.now());
-    setCurrentIdx(startIndex);
     setUnlocked(false);
     setCodeInput("");
 
@@ -342,6 +370,7 @@ export default function RallyeULApp() {
     }
   };
 
+  // Étape suivante dans la boucle; fin après 20 étapes (0..19)
   const goNext = () => {
     setCurrentIdx((i) => {
       const next = i + 1;
@@ -362,9 +391,12 @@ export default function RallyeULApp() {
     setFinishedSeconds(null);
     setSeconds(0);
     setCurrentIdx(0);
+    setStartIndex(0);
     setCodeInput("");
     setUnlocked(false);
-    localStorage.removeItem(STORAGE_KEY);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
     setMentors([]);
     setSelectedMentor("");
     setSelectedStudent("");
@@ -400,6 +432,9 @@ export default function RallyeULApp() {
     </Card>
   );
 
+  // on veut garder la “vue parcours/fin” visible même si startedAt est nul (une fois terminé)
+  const inRun = !!startedAt || isFinished;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
       <header className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b">
@@ -431,7 +466,7 @@ export default function RallyeULApp() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-6">
-        {!startedAt ? (
+        {!inRun ? (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="shadow-sm">
               <CardHeader>
@@ -544,7 +579,7 @@ export default function RallyeULApp() {
             </Card>
           </motion.div>
         ) : (
-          // ÉCRAN DE PARCOURS (ordre fixe)
+          // ÉCRAN DE PARCOURS (boucle circulaire relative au point de départ)
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -554,14 +589,14 @@ export default function RallyeULApp() {
               </div>
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <MapPin className="h-4 w-4" />
-                <span>Étape {currentIdx + 1} / {STATIONS.length}</span>
+                <span>Étape {stepDisplay}</span>
                 <div className="w-24">
                   <Progress value={progressPct} />
                 </div>
               </div>
             </div>
 
-            {currentIdx >= STATIONS.length ? (
+            {isFinished ? (
               <FinishedCard />
             ) : (
               currentStation && (
@@ -573,7 +608,7 @@ export default function RallyeULApp() {
                         {currentStation.name}
                       </CardTitle>
                       <CardDescription>
-                        Indice #{currentIdx + 1} — suivez les consignes ci-dessous.
+                        Indice #{((startIndex + currentIdx) % STATIONS.length) + 1} — suivez les consignes ci-dessous.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -638,7 +673,7 @@ export default function RallyeULApp() {
                     </CardContent>
                     <CardFooter className="justify-between">
                       <div className="text-xs text-slate-500">
-                        Progression: {currentIdx}/{STATIONS.length}
+                        Progression: {Math.min(currentIdx, STATIONS.length)}/{STATIONS.length}
                       </div>
                     </CardFooter>
                   </Card>
