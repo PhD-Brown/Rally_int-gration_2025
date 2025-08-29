@@ -424,10 +424,10 @@ export default function RallyeULApp() {
           <span className="font-semibold">{timeFmt(finishedSeconds ?? seconds)}</span>!{" "}
           Rendez-vous à la <span className="font-semibold">cafétéria du Vachon</span> vers{" "}
           <span className="font-semibold">17h30</span>. En attendant, complétez le{" "}
-          <span className="font-semibold">bingo</span>: ça vaut beaucoup de points pour demain!
+          <span className="font-semibold"></span>: ça vaut beaucoup de points pour demain!
         </p>
 
-        {/* Bingo en grand et zoomable */}
+        {/*  en grand et zoomable */}
         <div className="mt-2">
           <img
             src={BINGO_IMG}
