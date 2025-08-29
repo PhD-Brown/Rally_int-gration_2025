@@ -629,7 +629,7 @@ export default function RallyeULApp() {
           </motion.div>
         )}
 
-        <div className="pt-6 text-center text-xs text-slate-500">Baker is such a beast!!.</div>
+        <div className="pt-6 text-center text-xs text-slate-500">Baker is such a beast!</div>
 
         {/* --- LIGHTBOX OVERLAY : zoom + molette + boutons (intégré depuis ton extrait) --- */}
         {lightboxOpen && (
