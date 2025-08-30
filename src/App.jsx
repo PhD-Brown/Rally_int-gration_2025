@@ -59,9 +59,9 @@ const STATIONS = [
    (listes officielles)
    ========================================== */
 const PAIRINGS = {
-  "Clément Tremblay": ["Narayan Vigneault", "Marie Gervais", "Laurent Sirois", "Anakin Schroeder Tabah"],
+  "Clément Tremblay": ["Narayan Vigneault", "Laurent Sirois", "Anakin Schroeder Tabah"],
   "Frédérik Strach": ["Fredric Walker", "Camille Ménard", "Leïya Gélinas", "Justin Nadeau"], // Walker (corrigé)
-  "Xavier Lemens": ["Alexandre Bourgeois", "Charles-Émile Roy", "Jules Hermel", "Matheus Bernardo-Cunha"],
+  "Xavier Lemens": ["Alexandre Bourgeois", "Charles-Émile Roy", "Matheus Bernardo-Cunha"],
   "Jean-Frédéric Savard": ["Nassim Naili", "Christophe Renaud-Plourde"],
   "Charles-Antoine Fournier": ["Hany Derriche", "Allyson Landry", "Charles-Étienne Hogue", "Théodore Nadeau"],
   "Anouk Plouffe": ["Charles Plamondon", "Camille Pagé", "Médirck Boudreault"],
@@ -69,7 +69,7 @@ const PAIRINGS = {
   "Arthur Légaré": ["Zénon Michaud", "Mégane Faucher", "Jacob Bossé"],
   "Mélissa St-Pierre": ["Émilie Dominique Larouche", "Kalel Deschênes", "Tommy Roy"],
   "Jérémie Hatier": ["Florence Roberge", "Sulyvan Côté"],
-  "Alex Baker": ["Jérémie Bossé", "Anabelle Sansonetti", "Mathis Couture", "Maxime Leblanc"],
+  "Alex Baker": ["Jérémie Bossé", "Mathis Couture"],
   "Louis Grégoire": ["Philémon Robert", "Émile Denechaud", "Xavier Bilodeau"],
   // Ajoute d'autres parrains au besoin…
 };
