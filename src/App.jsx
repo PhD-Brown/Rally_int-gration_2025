@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+// (Switch retiré de l’UI; import conservé inutile -> tu peux le supprimer si tu veux)
 import { Switch } from "@/components/ui/switch";
 import {
   Plus,
@@ -579,6 +580,13 @@ export default function RallyeULApp() {
                       ))}
                     </div>
                   </div>
+                </div>
+
+                {/* ✅ Bouton de départ rétabli (sans mode test) */}
+                <div className="flex items-center justify-end">
+                  <Button size="lg" onClick={startRun} className="gap-2">
+                    Commencer <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
