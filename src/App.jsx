@@ -580,16 +580,6 @@ export default function RallyeULApp() {
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="text-slate-600">Mode TEST (organisateur)</span>
-                    <Switch checked={showTestMode} onCheckedChange={setShowTestMode} />
-                  </div>
-                  <Button size="lg" onClick={startRun} className="gap-2">
-                    Commencer <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </motion.div>
