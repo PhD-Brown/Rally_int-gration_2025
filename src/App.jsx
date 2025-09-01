@@ -115,7 +115,7 @@ const START_AT_BY_PAIR = new Map([
 ]);
 
 // 📌 Bingo (même dossier que les autres indices)
-const BINGO_IMG = "/indices/Bingo.png";
+const BINGO_IMG = "/indices/bingo_rallye.jpg";
 
 /* ---------- Panneau de débogage ---------- */
 function DebugPanel({ team, onTeamChange, stationIdx, onStationIdxChange, onApply, onClose }) {
