@@ -422,9 +422,9 @@ export default function RallyeULApp() {
         <p className="leading-relaxed">
           Félicitations, vous avez complété le rallye en{" "}
           <span className="font-semibold">{timeFmt(finishedSeconds ?? seconds)}</span>!{" "}
-          Rendez-vous à la <span className="font-semibold">cafétéria du Vachon</span> vers{" "}
-          <span className="font-semibold">17h30</span>. En attendant, complétez le bingo{" "}
-          <span className="font-semibold"></span>: ça vaut beaucoup de points pour demain!
+          Rendez-vous au local 2830 <span className="font-semibold"></span> vers{" "}
+          <span className="font-semibold">17h</span>. En attendant, complétez le bingo{" "}
+          <span className="font-semibold"></span>: ça vaut beaucoup de points pour demain! Vous devrez prendre en photo vos réalisations.
         </p>
 
         {/*  en grand et zoomable */}
